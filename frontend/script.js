@@ -15,6 +15,7 @@ const uploadPlaceholder = uploadArea.querySelector('.upload-placeholder');
 const generateBtn = document.getElementById('generateBtn');
 const tonesContainer = document.getElementById('tonesContainer');
 const kanseiWordsContainer = document.getElementById('kanseiWordsContainer');
+const promptStrategySelect = document.getElementById('promptStrategy');
 const resultsSection = document.getElementById('resultsSection');
 const originalSketch = document.getElementById('originalSketch');
 const generatedImage = document.getElementById('generatedImage');
@@ -180,6 +181,7 @@ async function handleGenerate() {
         const formData = new FormData();
         formData.append('image', uploadedFile);
         formData.append('kansei_text', 'Fashion design based on selected tones and Kansei words');
+        formData.append('prompt_strategy', promptStrategySelect ? promptStrategySelect.value : 'llm');
         
         // Add selected tones
         const selectedTones = getSelectedValues('tone');
@@ -230,7 +232,8 @@ function displayResults(result) {
     promptDisplay.textContent = result.llm_prompt;
     
     // Show notes
-    notesDisplay.textContent = result.notes || 'No additional notes';
+    const strategyNote = result.prompt_strategy ? `Prompt strategy: ${result.prompt_strategy}. ` : '';
+    notesDisplay.textContent = `${strategyNote}${result.notes || 'No additional notes'}`;
     
     // Show results section
     resultsSection.style.display = 'block';

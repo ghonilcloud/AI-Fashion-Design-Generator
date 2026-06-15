@@ -6,7 +6,7 @@
     "controlnet_model": "lllyasviel/sd-controlnet-canny"
   },
   "prompt": {
-    "mode": "gemini",
+    "prompt_strategy": "llm",
     "gemini_model": "gemini-2.5-flash"
   },
   "generation": {
@@ -18,4 +18,3 @@
   },
   "metrics": ["sketch_iou"]
 }
-

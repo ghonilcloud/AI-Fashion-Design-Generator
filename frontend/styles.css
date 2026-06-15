@@ -358,6 +358,22 @@ textarea:focus {
     border-color: var(--primary-color);
 }
 
+select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
 .checkbox-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

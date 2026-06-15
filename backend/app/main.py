@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -8,7 +8,7 @@ from typing import List
 
 from .config import UPLOADS_DIR, GENERATED_DIR, MEDIA_DIR
 from .models import GenerateDesignResponse
-from .generator import build_gemini_instruction, call_gemini_for_prompt, refine_for_image_model
+from .generator import build_prompt_for_strategy, normalize_prompt_strategy
 from .tones import TONES, KANSEI_WORDS
 
 # Optional import - only load when needed to avoid PyTorch DLL issues
@@ -46,13 +46,15 @@ async def generate_design(
     style_profile: str | None = Form(None),
     tones: List[str] = Form(default=[]),
     kansei_words: List[str] = Form(default=[]),
+    prompt_strategy: str = Form("llm"),
+    garment_type: str | None = Form(None),
 ):
     """
     Main endpoint: receives sketch + kansei text + optional tones/Kansei words.
     
     - Saves the uploaded sketch
-    - Calls Gemini to generate a detailed prompt based on selected tones/Kansei
-    - Returns generated_image_url and the LLM prompt
+    - Builds a prompt using either Gemini or the deterministic rule-based template
+    - Returns generated_image_url, the prompt, and the prompt strategy
     """
 
     # 1. Save the uploaded sketch
@@ -64,13 +66,23 @@ async def generate_design(
     with sketch_path.open("wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
 
-    # 2. Call Gemini to generate prompt (passing the sketch so Gemini can analyze its shape)
+    # 2. Build prompt using the selected strategy
     try:
-        instruction = build_gemini_instruction(tones, kansei_words, sketch_path=sketch_path)
-        gemini_prompt = call_gemini_for_prompt(instruction, sketch_path=sketch_path)
-        llm_prompt = refine_for_image_model(gemini_prompt)
+        normalized_prompt_strategy = normalize_prompt_strategy(prompt_strategy)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        llm_prompt, normalized_prompt_strategy = build_prompt_for_strategy(
+            tones,
+            kansei_words,
+            prompt_strategy=normalized_prompt_strategy,
+            sketch_path=sketch_path,
+            garment_type=garment_type,
+            sketch_metadata=style_profile,
+        )
     except Exception as e:
-        # Handle various API errors
+        # Handle various Gemini/API errors while preserving old frontend behavior.
         error_msg = str(e)
         if "403" in error_msg or "PERMISSION_DENIED" in error_msg:
             if "leaked" in error_msg.lower():
@@ -110,7 +122,7 @@ async def generate_design(
     generated_image_url = f"/media/generated/{generated_filename}"
 
     notes = (
-        "Generated using Stable Diffusion v1.5 + ControlNet with the Gemini-crafted prompt "
+        f"Generated using Stable Diffusion v1.5 + ControlNet with the {normalized_prompt_strategy} prompt "
         "conditioned on your CAD sketch."
     )
 
@@ -118,6 +130,7 @@ async def generate_design(
         status="ok",
         generated_image_url=generated_image_url,
         llm_prompt=llm_prompt,
+        prompt_strategy=normalized_prompt_strategy,
         notes=notes,
     )
 

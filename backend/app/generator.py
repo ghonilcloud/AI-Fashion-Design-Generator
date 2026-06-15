@@ -1,10 +1,29 @@
-"""Build prompts using preset tones/Kansei words and Gemini."""
+"""Build prompts using preset tones/Kansei words and optional Gemini expansion."""
 from typing import List
 import base64
 from pathlib import Path
 
 from .tones import TONES, KANSEI_WORDS
 from .llm_client import get_genai_client
+
+
+VALID_PROMPT_STRATEGIES = {"llm", "rule_based"}
+
+
+def normalize_prompt_strategy(prompt_strategy: str | None = "llm") -> str:
+    """Normalize supported prompt-strategy names and aliases."""
+    strategy = (prompt_strategy or "llm").strip().lower()
+    aliases = {
+        "gemini": "llm",
+        "llm_prompt": "llm",
+        "rule": "rule_based",
+        "rule_based_prompt": "rule_based",
+    }
+    strategy = aliases.get(strategy, strategy)
+    if strategy not in VALID_PROMPT_STRATEGIES:
+        allowed = ", ".join(sorted(VALID_PROMPT_STRATEGIES))
+        raise ValueError(f"Unsupported prompt_strategy '{prompt_strategy}'. Use one of: {allowed}.")
+    return strategy
 
 
 def build_gemini_instruction(
@@ -43,6 +62,32 @@ def build_gemini_instruction(
     )
 
     return instructions
+
+
+def build_rule_based_prompt(
+    selected_tones: List[str],
+    selected_kansei: List[str],
+    garment_type: str | None = None,
+    sketch_metadata: str | None = None,
+) -> str:
+    """Build a deterministic non-LLM prompt for controlled experiments."""
+    tones = ", ".join(selected_tones) if selected_tones else "none specified"
+    kansei_words = ", ".join(selected_kansei) if selected_kansei else "none specified"
+    garment_clause = f" The garment type is {garment_type.strip()}." if garment_type else ""
+    metadata_clause = (
+        f" Additional sketch metadata: {sketch_metadata.strip()}." if sketch_metadata else ""
+    )
+
+    return (
+        "A CAD-style fashion technical drawing of a garment based on the uploaded sketch."
+        f"{garment_clause}{metadata_clause} "
+        "The design should preserve the original silhouette, neckline, sleeves, hemline, "
+        "and construction lines. "
+        f"The design should express the following tone descriptors: {tones}. "
+        f"The design should express the following Kansei descriptors: {kansei_words}. "
+        "Render as a clean fashion illustration with visible fabric texture, controlled colors, "
+        "and a plain background."
+    )
 
 
 def call_gemini_for_prompt(instruction: str, sketch_path: str | Path = None, model: str = "gemini-2.5-flash") -> str:
@@ -88,3 +133,30 @@ def refine_for_image_model(gemini_text: str) -> str:
         "maintain sketch silhouette exactly; vibrant and well-lit; focus on garment appeal and style."
     )
     return gemini_text.strip() + suffix
+
+
+def build_prompt_for_strategy(
+    selected_tones: List[str],
+    selected_kansei: List[str],
+    prompt_strategy: str = "llm",
+    sketch_path: str | Path = None,
+    garment_type: str | None = None,
+    sketch_metadata: str | None = None,
+    model: str = "gemini-2.5-flash",
+) -> tuple[str, str]:
+    """Build the final image prompt and return `(prompt, normalized_strategy)`."""
+    strategy = normalize_prompt_strategy(prompt_strategy)
+    if strategy == "rule_based":
+        return (
+            build_rule_based_prompt(
+                selected_tones,
+                selected_kansei,
+                garment_type=garment_type,
+                sketch_metadata=sketch_metadata,
+            ),
+            strategy,
+        )
+
+    instruction = build_gemini_instruction(selected_tones, selected_kansei, sketch_path=sketch_path)
+    gemini_prompt = call_gemini_for_prompt(instruction, sketch_path=sketch_path, model=model)
+    return refine_for_image_model(gemini_prompt), strategy

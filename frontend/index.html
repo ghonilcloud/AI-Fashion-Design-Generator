@@ -84,6 +84,14 @@
                         <div id="kanseiWordsContainer" class="checkbox-grid"></div>
                     </div>
 
+                    <div class="form-group">
+                        <label for="promptStrategy">Prompt Strategy:</label>
+                        <select id="promptStrategy">
+                            <option value="llm">LLM Prompt</option>
+                            <option value="rule_based">Rule-Based Prompt</option>
+                        </select>
+                    </div>
+
                     <button id="generateBtn" class="btn-primary" disabled>
                         <span class="btn-text">Generate Design</span>
                         <span class="loader" style="display: none;"></span>

@@ -14,6 +14,7 @@ from experiments.metrics.runtime import measure_runtime
 from experiments.metrics.sketch_iou import compute_sketch_iou
 from experiments.prompts.gemini_prompt_builder import generate_gemini_image_prompt
 from experiments.prompts.rule_based_templates import build_rule_based_prompt
+from backend.app.generator import normalize_prompt_strategy
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -62,9 +63,10 @@ def run_case(
     seed = generation.get("seed")
     model_label = model.get("label", "model")
     case_id = case["sketch_id"]
+    prompt_strategy = get_prompt_strategy(prompt_config)
 
     prompt = build_prompt(config, case)
-    prompt_stem = f"{case_id}_{model_label}_seed{seed}_{prompt_config.get('mode', 'prompt')}"
+    prompt_stem = f"{case_id}_{model_label}_seed{seed}_{prompt_strategy}"
     prompt_path = logger.write_prompt(prompt_stem, prompt)
 
     record: dict[str, Any] = {
@@ -74,7 +76,7 @@ def run_case(
         "model": model,
         "generation": generation,
         "prompt": {
-            "mode": prompt_config.get("mode", "gemini"),
+            "prompt_strategy": prompt_strategy,
             "path": str(prompt_path),
             "text": prompt,
         },
@@ -123,15 +125,15 @@ def run_case(
 
 def build_prompt(config: dict[str, Any], case: dict[str, Any]) -> str:
     prompt_config = config.get("prompt", {})
-    mode = prompt_config.get("mode", "gemini")
+    prompt_strategy = get_prompt_strategy(prompt_config)
 
-    if mode == "manual":
+    if prompt_strategy == "manual":
         prompt = case.get("manual_prompt")
         if not prompt:
             raise ValueError(f"Case {case['sketch_id']} has no manual_prompt.")
         return prompt
 
-    if mode == "rule_based":
+    if prompt_strategy == "rule_based":
         return build_rule_based_prompt(
             tones=case.get("tones", []),
             kansei_words=case.get("kansei_words", []),
@@ -139,7 +141,7 @@ def build_prompt(config: dict[str, Any], case: dict[str, Any]) -> str:
             sketch_path=case["sketch_path"],
         )
 
-    if mode == "gemini":
+    if prompt_strategy == "llm":
         return generate_gemini_image_prompt(
             tones=case.get("tones", []),
             kansei_words=case.get("kansei_words", []),
@@ -147,7 +149,15 @@ def build_prompt(config: dict[str, Any], case: dict[str, Any]) -> str:
             model=prompt_config.get("gemini_model", "gemini-2.5-flash"),
         )
 
-    raise ValueError(f"Unknown prompt mode: {mode}")
+    raise ValueError(f"Unknown prompt_strategy: {prompt_strategy}")
+
+
+def get_prompt_strategy(prompt_config: dict[str, Any]) -> str:
+    """Return normalized strategy, accepting old experiment config aliases."""
+    strategy = prompt_config.get("prompt_strategy", prompt_config.get("mode", "llm"))
+    if strategy == "manual":
+        return "manual"
+    return normalize_prompt_strategy(strategy)
 
 
 def compute_selected_metrics(
@@ -208,4 +218,3 @@ def _resolve_path(path: str | Path) -> Path:
     if candidate.is_absolute():
         return candidate
     return PROJECT_ROOT / candidate
-

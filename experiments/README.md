@@ -23,7 +23,7 @@ Use semicolons for multiple tones or Kansei words.
 Prompt-only mode avoids diffusion model loading:
 
 ```bash
-python -m experiments.runners.run_single --sketch datasets/sketches/sketch_001.png --prompt-mode rule_based --tones Elegant --kansei-words Airy --prompt-only
+python -m experiments.runners.run_single --sketch datasets/sketches/sketch_001.png --prompt-strategy rule_based --tones Elegant --kansei-words Airy --prompt-only
 ```
 
 ```bash
@@ -68,4 +68,3 @@ Optional modules are scaffolded for:
 - `lpips`
 
 Those may require model-weight downloads or additional packages before use.
-

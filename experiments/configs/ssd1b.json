@@ -6,7 +6,7 @@
     "controlnet_model": "diffusers/controlnet-canny-sdxl-1.0"
   },
   "prompt": {
-    "mode": "gemini",
+    "prompt_strategy": "llm",
     "gemini_model": "gemini-2.5-flash"
   },
   "generation": {
@@ -19,4 +19,3 @@
   "notes": "This config records the intended SSD-1B comparison. The current backend pipeline is SD v1.5-oriented and may need an SDXL-compatible ControlNet pipeline implementation before this runs successfully.",
   "metrics": ["sketch_iou"]
 }
-

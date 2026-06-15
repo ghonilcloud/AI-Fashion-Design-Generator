@@ -6,11 +6,7 @@ paper experiments share the same prompt-generation behavior.
 from pathlib import Path
 from typing import Iterable
 
-from backend.app.generator import (
-    build_gemini_instruction,
-    call_gemini_for_prompt,
-    refine_for_image_model,
-)
+from backend.app.generator import build_prompt_for_strategy
 
 
 def generate_gemini_image_prompt(
@@ -20,15 +16,11 @@ def generate_gemini_image_prompt(
     model: str = "gemini-2.5-flash",
 ) -> str:
     """Return the final image prompt produced through the backend Gemini path."""
-    instruction = build_gemini_instruction(
+    prompt, _ = build_prompt_for_strategy(
         list(tones),
         list(kansei_words),
-        sketch_path=sketch_path,
-    )
-    gemini_text = call_gemini_for_prompt(
-        instruction,
+        prompt_strategy="llm",
         sketch_path=sketch_path,
         model=model,
     )
-    return refine_for_image_model(gemini_text)
-
+    return prompt

@@ -15,14 +15,14 @@ def main() -> None:
     parser.add_argument("--tones", default="")
     parser.add_argument("--kansei-words", default="")
     parser.add_argument("--manual-prompt", default="")
-    parser.add_argument("--prompt-mode", choices=["gemini", "rule_based", "manual"])
+    parser.add_argument("--prompt-strategy", choices=["llm", "rule_based"])
     parser.add_argument("--seed", type=int)
     parser.add_argument("--prompt-only", action="store_true")
     args = parser.parse_args()
 
     config = load_config(args.config)
-    if args.prompt_mode:
-        config = clone_config_with_overrides(config, prompt__mode=args.prompt_mode)
+    if args.prompt_strategy:
+        config = clone_config_with_overrides(config, prompt__prompt_strategy=args.prompt_strategy)
     if args.seed is not None:
         config = clone_config_with_overrides(config, generation__seed=args.seed)
 
@@ -46,4 +46,3 @@ def _split_cli_list(value: str) -> list[str]:
 
 if __name__ == "__main__":
     main()
-
