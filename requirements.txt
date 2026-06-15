@@ -5,6 +5,7 @@ pydantic
 google-genai
 python-dotenv
 numpy<2.0
+scipy
 torch
 torchvision
 diffusers
