@@ -1,130 +1,226 @@
 # AI Fashion Design Generator
-Turn a fashion sketch into a polished concept render with Gemini-shaped prompts and Stable Diffusion + ControlNet.
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](#prerequisites--installation)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)](#about--features)
-[![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?logo=docker&logoColor=white)](#docker)
-[![License](https://img.shields.io/badge/License-Unspecified-lightgrey)](#license)
+AI Fashion Design Generator is a research prototype for emotionally descriptive CAD-style fashion generation. It combines Kansei descriptors, LLM-based prompt generation, deterministic rule-based prompt baselines, and sketch-guided diffusion models to turn flat garment sketches into styled fashion concept renders.
 
-## About / Features
-AI Fashion Design Generator is a sketch-to-fashion workflow for designers, students, and concept artists who want fast visual iteration without losing the original silhouette.
+The project supports both an interactive FastAPI/frontend demo and a reproducible experiment workflow for paper results.
 
-What it does:
-- Upload a CAD-style sketch and generate a styled fashion render.
-- Choose from curated tone labels and Kansei words to steer the result.
-- Return both the generated image and the exact prompt used to create it.
-- Serve the frontend and backend from one FastAPI app for simple local runs.
+## Project Overview
 
-Why use it:
-- It preserves structure instead of only generating from text.
-- It keeps the creative direction controlled through a small, predictable vocabulary.
-- It shows the prompt behind the output, which makes iteration faster and easier to debug.
+The pipeline is:
 
-How the AI works:
-- This repo does not train a custom model from scratch.
-- Gemini 2.5 Flash is used as the prompt-shaping layer. It reads the uploaded sketch plus the selected tones/Kansei words and expands them into a compact fashion prompt.
-- Stable Diffusion v1.5 + ControlNet does the image synthesis step, using the sketch as structural guidance so the silhouette stays intact.
-- The current generation settings are fixed in code for consistency:
-  - `num_inference_steps=20`
-  - `guidance_scale=7.5`
-  - `controlnet_conditioning_scale=1.0`
-  - Negative prompt: `blurry, low quality, distorted, ugly, bad anatomy`
-- The app preprocesses sketches to a 512 x 512 grayscale input and falls back to returning the sketch if image generation dependencies are unavailable.
+1. A user or experiment runner provides a CAD-style fashion sketch.
+2. The design intent is described through tone labels and Kansei descriptors.
+3. A prompt is generated using either:
+   - `llm`: Gemini expands the descriptors and sketch context into an image prompt.
+   - `rule_based`: a deterministic template creates a non-LLM baseline prompt.
+4. Stable Diffusion + ControlNet generates a sketch-guided fashion image.
+5. Experiments evaluate CLIP similarity, LPIPS distance, Sketch IoU, latency, and peak VRAM.
 
-Built-in creative vocabulary:
-- Tones: Elegant, Minimalist, Avant-garde, Street, Romantic, Futuristic, Technical, Playful, Luxurious, Sustainable
-- Kansei words: Airy, Structured, Fluid, Geometric, Organic, Textured, Matte, Sheer, Layered, Tailored, Architectural, Ergonomic, Technical, Deconstructed, Streamlined, Ornamental, Monochrome, Vibrant, Contrast, Soft
+Supported model keys:
 
-## Prerequisites
-- Python 3.11 or newer
-- Git
-- A Gemini API key
-- A Hugging Face token is recommended for model downloads
-- An NVIDIA GPU is recommended for best results, but the app can still boot without one
-- Docker is optional
+- `sd_v1_5`
+- `sdxl`
+- `ssd_1b`
 
-## Prerequisites & Installation
+## Setup
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/ghonilcloud/AIFashionChatBot.git
-cd AIFashionChatBot
-```
+Use Python 3.11 or newer.
 
-### 2. Create a virtual environment
+Create and activate a virtual environment:
+
 ```bash
 python -m venv .venv
 ```
 
-### 3. Activate it
 ```bash
 # Windows PowerShell
 .venv\Scripts\Activate.ps1
+```
 
+```bash
 # macOS / Linux
 source .venv/bin/activate
 ```
 
-### 4. Install dependencies
+Install required packages:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 5. Add environment variables
-Create a `.env` file in the project root:
+Required environment variables:
+
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 HUGGINGFACE_TOKEN=your_huggingface_token_here
 ```
 
-Notes:
-- `GEMINI_API_KEY` is required.
-- `HUGGINGFACE_TOKEN` is used when downloading the Stable Diffusion and ControlNet weights.
-- The backend also accepts `API_KEY` as a fallback, but `GEMINI_API_KEY` is the preferred name.
+`GEMINI_API_KEY` is required for LLM prompt generation. `HUGGINGFACE_TOKEN` is used for downloading diffusion and ControlNet model weights when needed.
 
-### 6. Start the app
+## Dataset Format
+
+Place CAD sketch images in a folder such as:
+
+```text
+datasets/cad_sketches/
+  sketch_001.png
+  sketch_002.png
+```
+
+Supported image extensions for experiments:
+
+```text
+.png, .jpg, .jpeg, .webp, .bmp
+```
+
+## Running A Single Generation
+
+### CLI
+
+Run the interactive CLI:
+
+```bash
+python tools/generate_design.py datasets/cad_sketches/sketch_001.png
+```
+
+The CLI asks for tones, Kansei words, and prompt strategy, then generates an image using the default generation settings.
+
+### Web App
+
+Start the backend and frontend:
+
 ```bash
 python start_server.py
 ```
 
-The app starts on `http://localhost:8000`.
+Open:
 
-### Docker
-```bash
-docker build -t aifashionchatbot .
-docker run -p 8000:8000 --gpus all aifashionchatbot
+```text
+http://localhost:8000
 ```
 
-## Usage
+The frontend supports simple generation by default and optional Advanced Settings for prompt strategy, model, inference steps, CFG scale, ControlNet scale, and seed.
 
-### Local web UI
-1. Start the server.
-2. Open `http://localhost:8000`.
-3. Upload a sketch image.
-4. Select up to 3 tones and any Kansei words.
-5. Click **Generate Design**.
+### API
 
-### API checks
+Health check:
+
 ```bash
 curl http://localhost:8000/health
 ```
 
+Generate one design:
+
 ```bash
-curl http://localhost:8000/api/tones
+curl -X POST http://localhost:8000/api/generate-design \
+  -F "image=@datasets/cad_sketches/sketch_001.png" \
+  -F "kansei_text=Fashion design based on selected tones and Kansei words" \
+  -F "tones=Elegant" \
+  -F "kansei_words=Airy" \
+  -F "prompt_strategy=llm" \
+  -F "model_key=sd_v1_5" \
+  -F "num_inference_steps=20" \
+  -F "guidance_scale=7.5" \
+  -F "controlnet_conditioning_scale=1.0" \
+  -F "seed=42"
 ```
 
-### Local frontend note
-The frontend template currently includes a production API override in `frontend/index.html`.
-For local development, point `window.API_BASE_URL` at `http://localhost:8000`, or remove that override so `frontend/script.js` can use its localhost default.
+## Running Full Experiments
 
-## Contributing
-Issues and pull requests are welcome.
+Run the full experiment grid on a small subset:
 
-- If you find a bug or want a feature, open an issue with the expected behavior and a clear repro.
-- If you want to contribute code, fork the repo, make the change, and submit a pull request.
-- Feel free to copy, adapt, and use the project for your own experiments.
+```bash
+python experiments/run_experiment.py --dataset datasets/cad_sketches --limit 5
+```
+
+Run all sketches and overwrite existing rows with the same `run_id`:
+
+```bash
+python experiments/run_experiment.py --dataset datasets/cad_sketches --overwrite
+```
+
+The experiment grid covers:
+
+- Prompt strategy: `rule_based`, `llm`
+- Model key: `sd_v1_5`, `sdxl`, `ssd_1b`
+- Inference steps: `10`, `20`
+- Guidance scale: `7.5`
+- ControlNet scale: `0.5`, `0.75`, `1.0`
+- Seed: `42`
+
+## Summarizing Results
+
+After `experiments/results/raw_results.csv` exists, run:
+
+```bash
+python experiments/summarize_results.py
+```
+
+This creates grouped CSV summaries and markdown tables for the paper.
+
+## Running Statistical Tests
+
+Run paired statistical tests comparing `rule_based` and `llm` prompt strategies:
+
+```bash
+python experiments/statistical_tests.py
+```
+
+Pairs are matched by sketch, model, inference steps, CFG scale, ControlNet scale, and seed. The script tests normality of paired differences, then uses either a paired t-test or Wilcoxon signed-rank test.
+
+## Output Files
+
+Main experiment outputs are written under:
+
+```text
+experiments/results/
+```
+
+Important files:
+
+- `raw_results.csv`: one row per generated experiment output, including run ID, sketch ID, prompt strategy, model key, hyperparameters, prompt, image path, metrics, latency, VRAM, and timestamp.
+- `summary_by_model.csv`: grouped mean/std results by model.
+- `summary_by_prompt_strategy.csv`: grouped mean/std results by prompt strategy.
+- `summary_by_model_and_prompt.csv`: grouped results by model and prompt strategy.
+- `summary_by_controlnet_scale.csv`: ControlNet scale ablation summary.
+- `summary_by_steps.csv`: inference step ablation summary.
+- `paper_tables.md`: markdown tables ready to paste into the paper.
+- `statistical_tests.csv`: machine-readable paired statistical test results.
+- `statistical_tests.md`: paper-readable statistical test explanations and interpretations.
+
+Other result folders:
+
+- `images/`: generated images.
+- `prompts/`: exact prompt text for each run.
+- `metadata/`: per-run JSON metadata.
+
+## Reproducibility Notes
+
+The research runner is designed for reproducible experiments:
+
+- A fixed seed is used by default: `42`.
+- Model IDs are logged through `model_key`, `base_model`, and `controlnet_model`.
+- Hyperparameters are logged, including inference steps, CFG scale, ControlNet scale, negative prompt, device, and dtype.
+- Prompt strategy is logged as `llm` or `rule_based`.
+- Metrics configuration is recorded in per-run metadata, including CLIP model name, LPIPS backbone, and Canny thresholds for Sketch IoU.
+- Output filenames encode sketch ID, model key, prompt strategy, steps, CFG scale, ControlNet scale, and seed.
+
+Metric interpretation:
+
+- CLIP text-image similarity: higher is better.
+- LPIPS perceptual distance: lower is better.
+- Sketch IoU: higher is better.
+- Latency and peak VRAM: lower is better for deployment.
+
+## Docker
+
+Docker support is included for deployment-oriented runs:
+
+```bash
+docker build -t ai-fashion-design-generator .
+docker run -p 8000:8000 --gpus all ai-fashion-design-generator
+```
 
 ## License
-No license file is included in this repository.
 
-If you plan to redistribute or reuse the project publicly, add a `LICENSE` file first and reference it here.
+No license file is currently included. Add a `LICENSE` file before public redistribution or reuse.
