@@ -1,5 +1,8 @@
 """CLIP text-image semantic alignment metric.
 
+CLIP similarity is higher-is-better: larger cosine similarity indicates better
+alignment between the text prompt and generated image.
+
 This module is intentionally optional because the model weights may need to be
 downloaded before use.
 """
@@ -19,7 +22,7 @@ def compute_clip_score(
     try:
         import torch
         from transformers import CLIPModel, CLIPProcessor
-    except ImportError as exc:
+    except Exception as exc:
         raise RuntimeError("CLIP metric requires torch and transformers.") from exc
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -35,4 +38,3 @@ def compute_clip_score(
         score = (text_embeds * image_embeds).sum(dim=-1).item()
 
     return float(score)
-

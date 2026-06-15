@@ -1,5 +1,8 @@
 """LPIPS perceptual distance metric.
 
+LPIPS distance is lower-is-better: smaller values indicate stronger perceptual
+similarity between the original sketch and generated image.
+
 Install the optional `lpips` package before enabling this metric.
 """
 from __future__ import annotations
@@ -19,7 +22,7 @@ def compute_lpips_distance(
         import lpips
         import torch
         import torchvision.transforms as transforms
-    except ImportError as exc:
+    except Exception as exc:
         raise RuntimeError("LPIPS metric requires the optional `lpips` package.") from exc
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -37,4 +40,3 @@ def compute_lpips_distance(
 
     with torch.no_grad():
         return float(loss_fn(sketch, generated).item())
-

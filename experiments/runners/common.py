@@ -8,10 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from experiments.logging.experiment_logger import ExperimentLogger
-from experiments.metrics.clip_score import compute_clip_score
-from experiments.metrics.lpips_distance import compute_lpips_distance
+from experiments.metrics import evaluate_generation
 from experiments.metrics.runtime import measure_runtime
-from experiments.metrics.sketch_iou import compute_sketch_iou
 from experiments.prompts.gemini_prompt_builder import generate_gemini_image_prompt
 from experiments.prompts.rule_based_templates import build_rule_based_prompt
 from backend.app.generator import normalize_prompt_strategy
@@ -59,7 +57,7 @@ def run_case(
     model = config.get("model", {})
     generation = config.get("generation", {})
     prompt_config = config.get("prompt", {})
-    metrics = config.get("metrics", [])
+    metrics_config = config.get("metrics", [])
     seed = generation.get("seed")
     model_key = model.get("model_key", model.get("label", "sd_v1_5"))
     case_id = case["sketch_id"]
@@ -119,7 +117,12 @@ def run_case(
         record["output_path"] = str(output_path)
         record["generation_metadata"] = generation_metadata
         record["runtime"] = runtime
-        record["metrics"] = compute_selected_metrics(metrics, case["sketch_path"], output_path, prompt)
+        record["metrics"] = evaluate_generation(
+            sketch_path=case["sketch_path"],
+            generated_image_path=output_path,
+            prompt=prompt,
+            metrics_config=_metrics_config_with_runtime(metrics_config, runtime),
+        )
     except Exception as exc:
         record["status"] = "error"
         record["errors"]["generation"] = str(exc)
@@ -165,26 +168,23 @@ def get_prompt_strategy(prompt_config: dict[str, Any]) -> str:
     return normalize_prompt_strategy(strategy)
 
 
-def compute_selected_metrics(
-    metric_names: list[str],
-    sketch_path: str | Path,
-    generated_path: str | Path,
-    prompt: str,
-) -> dict[str, Any]:
-    values: dict[str, Any] = {}
-    for metric_name in metric_names:
-        try:
-            if metric_name == "sketch_iou":
-                values[metric_name] = compute_sketch_iou(sketch_path, generated_path)
-            elif metric_name == "clip":
-                values[metric_name] = compute_clip_score(prompt, generated_path)
-            elif metric_name == "lpips":
-                values[metric_name] = compute_lpips_distance(sketch_path, generated_path)
-            else:
-                values[f"{metric_name}_error"] = f"Unknown metric: {metric_name}"
-        except Exception as exc:
-            values[f"{metric_name}_error"] = str(exc)
-    return values
+def _metrics_config_with_runtime(
+    metrics_config: dict[str, Any] | list[str],
+    runtime: dict[str, Any],
+) -> dict[str, Any] | list[str]:
+    if isinstance(metrics_config, dict):
+        merged = metrics_config.copy()
+        merged.setdefault("latency_seconds", runtime.get("elapsed_seconds"))
+        merged.setdefault("peak_vram_gb", runtime.get("cuda_peak_memory_gb"))
+        return merged
+
+    return {
+        "compute_clip": "clip" in metrics_config or "clip_score" in metrics_config,
+        "compute_lpips": "lpips" in metrics_config or "lpips_score" in metrics_config,
+        "compute_sketch_iou": "sketch_iou" in metrics_config,
+        "latency_seconds": runtime.get("elapsed_seconds"),
+        "peak_vram_gb": runtime.get("cuda_peak_memory_gb"),
+    }
 
 
 def make_logger(config: dict[str, Any], suffix: str | None = None) -> ExperimentLogger:
