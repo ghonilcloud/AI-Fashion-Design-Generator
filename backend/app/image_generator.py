@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 MODEL_REGISTRY = {
     "sd_v1_5": {
-        "base_model": "runwayml/stable-diffusion-v1-5",
+        "base_model": "stable-diffusion-v1-5/stable-diffusion-v1-5",
         "controlnet_model": "lllyasviel/sd-controlnet-canny",
         "pipeline": "sd",
         "image_size": 512,

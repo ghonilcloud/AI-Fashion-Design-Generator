@@ -85,6 +85,12 @@ python tools/generate_design.py datasets/cad_sketches/sketch_001.png
 
 The CLI asks for tones, Kansei words, and prompt strategy, then generates an image using the default generation settings.
 
+Optional generation settings can be passed as flags:
+
+```bash
+python tools/generate_design.py datasets/cad_sketches/sketch_001.png --model-key sdxl --num-inference-steps 20 --guidance-scale 7.5 --controlnet-conditioning-scale 0.75 --seed 42
+```
+
 ### Web App
 
 Start the backend and frontend:
@@ -204,6 +210,8 @@ The research runner is designed for reproducible experiments:
 - Prompt strategy is logged as `llm` or `rule_based`.
 - Metrics configuration is recorded in per-run metadata, including CLIP model name, LPIPS backbone, and Canny thresholds for Sketch IoU.
 - Output filenames encode sketch ID, model key, prompt strategy, steps, CFG scale, ControlNet scale, and seed.
+
+Model weights are not committed to this repository. Diffusers downloads them from Hugging Face using the logged model IDs and the local Hugging Face cache. For reproducible paper runs, pin the model IDs in `backend/app/image_generator.py`, keep `HUGGINGFACE_TOKEN` in `.env`, and record the generated metadata rather than committing multi-GB checkpoint files.
 
 Metric interpretation:
 

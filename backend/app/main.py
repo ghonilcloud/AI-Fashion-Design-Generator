@@ -91,21 +91,12 @@ async def generate_design(
             sketch_metadata=style_profile,
         )
     except Exception as e:
-        # Handle various Gemini/API errors while preserving old frontend behavior.
-        error_msg = str(e)
-        if "403" in error_msg or "PERMISSION_DENIED" in error_msg:
-            if "leaked" in error_msg.lower():
-                llm_prompt = "Gemini API Error: Your API key has been reported as leaked and disabled. Please generate a new API key from https://aistudio.google.com/apikey and update your .env file."
-            else:
-                llm_prompt = "Gemini API Error: Permission denied. Please check your API key has the correct permissions."
-        elif "API key" in error_msg or "GEMINI_API_KEY" in error_msg:
-            llm_prompt = "Gemini API Error: API key not configured. Please set GEMINI_API_KEY in your .env file."
-        else:
-            llm_prompt = f"Gemini API Error: {error_msg}"
-        print(f"Gemini error: {error_msg}")
+        raise HTTPException(status_code=502, detail=f"Prompt generation failed: {e}")
 
     # 3. Generate image using Stable Diffusion + ControlNet with sketch + prompt
+    response_status = "ok"
     generation_metadata = None
+    generation_error = None
     generated_path = _fallback_output_path(
         sketch_id=sketch_id,
         model_key=model_key,
@@ -135,11 +126,13 @@ async def generate_design(
             )
             generated_path = Path(generation_metadata["output_path"])
         except Exception as e:
-            # Fallback: copy sketch if generation fails
-            print(f"Image generation failed: {e}")
+            generation_error = str(e)
+            response_status = "error"
+            print(f"Image generation failed: {generation_error}")
             shutil.copyfile(sketch_path, generated_path)
     else:
-        # Image generation not available, just copy the sketch
+        generation_error = "Image generation dependencies are unavailable."
+        response_status = "error"
         print("Image generation unavailable - returning original sketch")
         shutil.copyfile(sketch_path, generated_path)
 
@@ -147,16 +140,39 @@ async def generate_design(
     generated_filename = generated_path.name
     generated_image_url = f"/media/generated/{generated_filename}"
 
-    selected_model = generation_metadata.get("model_key", model_key) if generation_metadata else model_key
-    selected_base_model = generation_metadata.get("base_model", base_model) if generation_metadata else base_model
+    if generation_metadata is None:
+        generation_metadata = _build_fallback_generation_metadata(
+            sketch_id=sketch_id,
+            sketch_path=sketch_path,
+            generated_path=generated_path,
+            prompt_strategy=normalized_prompt_strategy,
+            model_key=model_key,
+            base_model=base_model,
+            controlnet_model=controlnet_model,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            controlnet_conditioning_scale=controlnet_conditioning_scale,
+            seed=seed,
+            negative_prompt=negative_prompt,
+            error=generation_error,
+        )
+
+    selected_model = generation_metadata.get("model_key", model_key)
+    selected_base_model = generation_metadata.get("base_model", base_model)
     model_label = selected_base_model or selected_model
-    notes = (
-        f"Generated using {selected_model} ({model_label}) + ControlNet with the "
-        f"{normalized_prompt_strategy} prompt conditioned on your CAD sketch."
-    )
+    if response_status == "ok":
+        notes = (
+            f"Generated using {selected_model} ({model_label}) + ControlNet with the "
+            f"{normalized_prompt_strategy} prompt conditioned on your CAD sketch."
+        )
+    else:
+        notes = (
+            "Image generation failed or was unavailable; the returned image is the uploaded sketch copy. "
+            f"Error: {generation_error}"
+        )
 
     return GenerateDesignResponse(
-        status="ok",
+        status=response_status,
         generated_image_url=generated_image_url,
         llm_prompt=llm_prompt,
         prompt_strategy=normalized_prompt_strategy,
@@ -214,3 +230,37 @@ def _fallback_output_path(
         f"cnet{str(controlnet_conditioning_scale).replace('.', 'p')}_seed{seed}.png"
     )
     return GENERATED_DIR / filename
+
+
+def _build_fallback_generation_metadata(
+    sketch_id: str,
+    sketch_path: Path,
+    generated_path: Path,
+    prompt_strategy: str,
+    model_key: str,
+    base_model: str | None,
+    controlnet_model: str | None,
+    num_inference_steps: int,
+    guidance_scale: float,
+    controlnet_conditioning_scale: float,
+    seed: int | None,
+    negative_prompt: str,
+    error: str | None,
+) -> dict:
+    return {
+        "status": "error",
+        "sketch_id": sketch_id,
+        "sketch_path": str(sketch_path),
+        "prompt_strategy": prompt_strategy,
+        "model_key": model_key,
+        "base_model": base_model,
+        "controlnet_model": controlnet_model,
+        "num_inference_steps": num_inference_steps,
+        "guidance_scale": guidance_scale,
+        "controlnet_conditioning_scale": controlnet_conditioning_scale,
+        "seed": seed,
+        "negative_prompt": negative_prompt,
+        "output_path": str(generated_path),
+        "fallback_image_copied": True,
+        "error": error,
+    }

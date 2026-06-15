@@ -28,7 +28,7 @@ class ImageGenerationConfigTests(unittest.TestCase):
         config = image_generator.resolve_model_config("sd_v1_5")
 
         self.assertEqual(config["model_key"], "sd_v1_5")
-        self.assertEqual(config["base_model"], "runwayml/stable-diffusion-v1-5")
+        self.assertEqual(config["base_model"], "stable-diffusion-v1-5/stable-diffusion-v1-5")
         self.assertEqual(config["controlnet_model"], "lllyasviel/sd-controlnet-canny")
 
     def test_generation_filename_contains_reproducibility_fields(self):

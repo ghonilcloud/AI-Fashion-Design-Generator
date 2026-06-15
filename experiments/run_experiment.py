@@ -37,7 +37,7 @@ SEEDS = [42]
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 MODEL_REGISTRY_FALLBACK = {
     "sd_v1_5": {
-        "base_model": "runwayml/stable-diffusion-v1-5",
+        "base_model": "stable-diffusion-v1-5/stable-diffusion-v1-5",
         "controlnet_model": "lllyasviel/sd-controlnet-canny",
         "pipeline": "sd",
         "image_size": 512,
@@ -113,14 +113,13 @@ def main() -> None:
         sketch_id = safe_id(sketch_path.stem)
         for combo in iter_grid():
             run_id = build_run_id(sketch_id=sketch_id, **combo)
-            if run_id in existing_run_ids and not args.overwrite:
+            if args.overwrite:
+                remove_run_id_from_csv(RAW_RESULTS_CSV, run_id)
+                existing_run_ids.discard(run_id)
+            elif run_id in existing_run_ids:
                 skipped += 1
                 print(f"Skipping existing run: {run_id}")
                 continue
-
-            if args.overwrite and run_id in existing_run_ids:
-                remove_run_id_from_csv(RAW_RESULTS_CSV, run_id)
-                existing_run_ids.discard(run_id)
 
             try:
                 row = run_one(

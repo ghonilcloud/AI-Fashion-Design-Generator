@@ -2,6 +2,7 @@
 
 Usage: python tools/generate_design.py <sketch_image_path>
 """
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -13,6 +14,14 @@ if PROJECT_ROOT not in sys.path:
 
 from backend.app.generator import build_prompt_for_strategy, normalize_prompt_strategy
 from backend.app.tones import KANSEI_WORDS, TONES
+
+
+MODEL_KEYS = ["sd_v1_5", "sdxl", "ssd_1b"]
+DEFAULT_MODEL_KEY = "sd_v1_5"
+DEFAULT_NUM_INFERENCE_STEPS = 20
+DEFAULT_GUIDANCE_SCALE = 7.5
+DEFAULT_CONTROLNET_CONDITIONING_SCALE = 1.0
+DEFAULT_SEED = 42
 
 
 def pick_from_list(title, options, max_selections=None):
@@ -52,12 +61,14 @@ def pick_prompt_strategy():
 
 
 def main():
+    args = parse_args()
+
     print("=" * 60)
     print("Fashion Design Generator - CLI Version")
     print("=" * 60)
 
-    if len(sys.argv) > 1:
-        sketch_path = Path(sys.argv[1])
+    if args.sketch_image_path:
+        sketch_path = Path(args.sketch_image_path)
     else:
         sketch_input = input("\nEnter path to your sketch image: ").strip()
         sketch_path = Path(sketch_input)
@@ -118,10 +129,11 @@ def main():
             sketch_path=sketch_path,
             prompt=image_prompt,
             output_path=output_path,
-            model_key="sd_v1_5",
-            num_inference_steps=20,
-            guidance_scale=7.5,
-            controlnet_conditioning_scale=1.0,
+            model_key=args.model_key,
+            num_inference_steps=args.num_inference_steps,
+            guidance_scale=args.guidance_scale,
+            controlnet_conditioning_scale=args.controlnet_conditioning_scale,
+            seed=args.seed,
             prompt_strategy=prompt_strategy,
             sketch_id=sketch_path.stem,
         )
@@ -146,9 +158,7 @@ def main():
         print("\nThis is likely due to PyTorch not being properly installed.")
         print("The prompt has been generated but image generation is unavailable.")
 
-        prompt_path = Path(PROJECT_ROOT) / "last_image_prompt.txt"
-        with open(prompt_path, "w", encoding="utf-8") as f:
-            f.write(image_prompt)
+        prompt_path = save_failed_prompt(image_prompt, sketch_path)
         print(f"\nPrompt saved to: {prompt_path}")
         print("\nYou can use this prompt with other image generation tools.")
 
@@ -156,10 +166,31 @@ def main():
         print(f"\nError during image generation: {e}")
         print("\nThe prompt was generated successfully but image generation failed.")
 
-        prompt_path = Path(PROJECT_ROOT) / "last_image_prompt.txt"
-        with open(prompt_path, "w", encoding="utf-8") as f:
-            f.write(image_prompt)
+        prompt_path = save_failed_prompt(image_prompt, sketch_path)
         print(f"\nPrompt saved to: {prompt_path}")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generate one fashion design from a CAD sketch.")
+    parser.add_argument("sketch_image_path", nargs="?")
+    parser.add_argument("--model-key", default=DEFAULT_MODEL_KEY, choices=MODEL_KEYS)
+    parser.add_argument("--num-inference-steps", type=int, default=DEFAULT_NUM_INFERENCE_STEPS)
+    parser.add_argument("--guidance-scale", type=float, default=DEFAULT_GUIDANCE_SCALE)
+    parser.add_argument(
+        "--controlnet-conditioning-scale",
+        type=float,
+        default=DEFAULT_CONTROLNET_CONDITIONING_SCALE,
+    )
+    parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    return parser.parse_args()
+
+
+def save_failed_prompt(image_prompt: str, sketch_path: Path) -> Path:
+    prompt_dir = Path(PROJECT_ROOT) / "backend" / "media" / "generated"
+    prompt_dir.mkdir(parents=True, exist_ok=True)
+    prompt_path = prompt_dir / f"{sketch_path.stem}_failed_prompt.txt"
+    prompt_path.write_text(image_prompt, encoding="utf-8")
+    return prompt_path
 
 
 if __name__ == "__main__":

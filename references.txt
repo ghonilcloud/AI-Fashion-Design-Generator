@@ -1,0 +1,200 @@
+@article{ref_niyompatama,
+  author  = {Niyompatama, M. J. and Lapatoura, I.},
+  title   = {Generative AI in Fashion Design Creation: A Copyright Analysis of AI-Assisted Designs},
+  journal = {Journal of Intellectual Property Law \& Practice},
+  volume  = {20},
+  number  = {10},
+  pages   = {654--666},
+  year    = {2025},
+  month   = {aug},
+  doi     = {10.1093/jiplp/jpaf045}
+}
+
+@article{ref_rizzi,
+  author  = {Rizzi, G. and Bertola, P.},
+  title   = {Exploring the Generative AI Potential in the Fashion Design Process: An Experimental Experience on the Collaboration Between Fashion Design Practitioners and Generative AI Tools},
+  journal = {European Journal of Cultural Management and Policy},
+  volume  = {15},
+  year    = {2025},
+  month   = {may},
+  doi     = {10.3389/ejcmp.2025.13875}
+}
+
+@misc{ref_mehta,
+  author       = {Mehta, M. and Buntain, C.},
+  title        = {Emotional Images: Assessing Emotions in Images and Potential Biases in Generative Models},
+  year         = {2024},
+  howpublished = {arXiv preprint},
+  doi          = {10.48550/arXiv.2411.05985}
+}
+
+@article{ref_albishri,
+  author  = {Albishri, A. A. and Almisbahi, R. M.},
+  title   = {The Role of Artificial Intelligence in Fashion Design},
+  journal = {Advances in Social Sciences Research Journal},
+  volume  = {11},
+  number  = {8},
+  pages   = {410--427},
+  year    = {2024},
+  month   = {aug},
+  doi     = {10.14738/assrj.118.17514}
+}
+
+@article{ref_renaningtyas,
+  author  = {Renaningtyas, L. and Dwitasari, P. and Ramadhani, N.},
+  title   = {Implementing the Use of AI for Analysis and Prediction in the Fashion Industry},
+  journal = {The Academic Research Community Publication},
+  volume  = {7},
+  number  = {1},
+  year    = {2023},
+  month   = {jan},
+  doi     = {10.21625/archive.v7i1.928}
+}
+
+@article{ref_ma,
+  author  = {Ma, N. and Kim, J. and Lee, J. H.},
+  title   = {Exploring Personalized Fashion Design Process Using an Emotional Data Visualization Method},
+  journal = {Fashion and Textiles},
+  volume  = {9},
+  number  = {1},
+  year    = {2022},
+  month   = {dec},
+  doi     = {10.1186/s40691-022-00321-9}
+}
+
+@article{ref_quan,
+  author  = {Quan, H. and Li, S. and Hu, J.},
+  title   = {Product Innovation Design Based on Deep Learning and Kansei Engineering},
+  journal = {Applied Sciences},
+  volume  = {8},
+  number  = {12},
+  pages   = {2397},
+  year    = {2018},
+  month   = {nov},
+  doi     = {10.3390/app8122397}
+}
+
+@article{ref_du,
+  author  = {Du, Y. and Liu, X. and Cai, M. and Park, K.},
+  title   = {A Product's Kansei Appearance Design Method Based on Conditional-Controlled AI Image Generation},
+  journal = {Sustainability},
+  volume  = {16},
+  number  = {20},
+  pages   = {8837},
+  year    = {2024},
+  month   = {oct},
+  doi     = {10.3390/su16208837}
+}
+
+@inproceedings{ref_ibrahima2010,
+  author    = {Ibrahima, E. N. M. and Md Dahari, N. and Harun, N. H.},
+  title     = {Exploring Kansei Attributes of the Emotional Preferences on Children's Clothing},
+  booktitle = {Proceedings of Kansei Engineering and Emotion Research (KEER)},
+  year      = {2010},
+  pages     = {1--8},
+  address   = {Paris, France}
+}
+
+@article{ref_zhang2023,
+  author  = {Zhang, Q. and Li, Y. and Liu, L.},
+  title   = {Product Styling Cognition Based on Kansei Engineering and Deep Learning},
+  journal = {Applied Sciences},
+  volume  = {13},
+  number  = {17},
+  pages   = {9577},
+  year    = {2023},
+  doi     = {10.3390/app13179577}
+}
+
+@article{ref_hakim2024,
+  author  = {Hakim, A. and Mulyati, A. S.},
+  title   = {Systematic Review of Kansei Engineering Method Developments in the Design Field},
+  journal = {Jurnal Optimasi Sistem Industri},
+  volume  = {13},
+  number  = {1},
+  pages   = {1--13},
+  year    = {2024}
+}
+
+@inproceedings{ref_yang2024,
+  author    = {Yang, Jingyuan and Feng, Jiawei and Huang, Hui},
+  title     = {EmoGen: Emotional Image Content Generation with Text-to-Image Diffusion Models},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2024},
+  pages     = {1--11},
+}
+
+@article{ref_lian2023,
+  author  = {Lian, Long and Li, Boyi and Yala, Adam and Darrell, Trevor},
+  title   = {LLM-grounded Diffusion: Enhancing Prompt Understanding of Text-to-Image Diffusion Models with Large Language Models},
+  journal = {Transactions on Machine Learning Research},
+  year    = {2024},
+  note    = {First published as arXiv:2305.13655},
+  url     = {https://llm-grounded-diffusion.github.io}
+}
+
+@inproceedings{ref_radford2021,
+  author    = {Radford, Alec and Kim, Jong Wook and Hallacy, Chris and Ramesh, Aditya and Goh, Gabriel and Agarwal, Sandhini and Sastry, Girish and others},
+  title     = {Learning Transferable Visual Models from Natural Language Supervision},
+  booktitle = {Proceedings of the 38th International Conference on Machine Learning (ICML)},
+  year      = {2021},
+  pages     = {8748--8763},
+  url       = {https://arxiv.org/abs/2103.00020}
+}
+
+@article{ref_rombachetal2022,
+  author  = {Rombach, Robin and Blattmann, Andreas and Lorenz, Dominik and Esser, Patrick and Ommer, Bj{\"o}rn},
+  title   = {High-Resolution Image Synthesis with Latent Diffusion Models},
+  journal = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year    = {2022},
+  pages   = {10684--10695},
+  doi     = {10.1109/CVPR52688.2022.01042}
+}
+
+@book{ref_devops,
+author = {Maria Thason, Justin Rajakumar and Jain, Dr},
+year = {2025},
+month = {07},
+pages = {},
+title = {The DevOps and Release Management Handbook },
+isbn = {978-93-6788-952-7}
+}
+
+@inproceedings{zhang2018unreasonable,
+  title={The unreasonable effectiveness of deep features as a perceptual metric},
+  author={Zhang, Richard and Isola, Phillip and Efros, Alexei A and Shechtman, Eli and Wang, Oliver},
+  booktitle={Proceedings of the IEEE conference on computer vision and pattern recognition},
+  pages={586--595},
+  year={2018}
+}
+
+@inproceedings{zitnickIOUs,
+author = {Zitnick, Charles and Dollar, Piotr},
+year = {2014},
+month = {09},
+pages = {},
+title = {Edge Boxes : Locating Object Proposals from Edges},
+volume = {8693},
+isbn = {978-3-319-10601-4},
+doi = {10.1007/978-3-319-10602-1_26}
+}
+
+@misc{lampe2024dictidiffusionbasedclothingdesigner,
+      title={DiCTI: Diffusion-based Clothing Designer via Text-guided Input}, 
+      author={Ajda Lampe and Julija Stopar and Deepak Kumar Jain and Shinichiro Omachi and Peter Peer and Vitomir Štruc},
+      year={2024},
+      eprint={2407.03901},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2407.03901}, 
+}
+
+@misc{lamia2025transformingfashionaicomparative,
+      title={Transforming Fashion with AI: A Comparative Study of Large Language Models in Apparel Design}, 
+      author={Nusrat Jahan Lamia and Sadia Afrin Mim},
+      year={2025},
+      eprint={2509.04705},
+      archivePrefix={arXiv},
+      primaryClass={cs.HC},
+      url={https://arxiv.org/abs/2509.04705}, 
+}
