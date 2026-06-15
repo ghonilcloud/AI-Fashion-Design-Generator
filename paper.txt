@@ -1,0 +1,337 @@
+\documentclass[conference]{IEEEtran}
+
+\setlength{\textfloatsep}{6pt}
+\setlength{\floatsep}{4pt}
+\setlength{\intextsep}{6pt}
+\setlength{\itemsep}{0pt}
+
+% ---------- Packages ----------
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{dblfloatfix}  
+\usepackage{hyperref}
+
+% ---------- Title & Author ----------
+\title{Personalized Fashion Design Intelligence: Integrating LLM, and Generative AI for Emotionally Descriptive CAD-Style Drawings}
+
+\author{
+    \IEEEauthorblockN{Edward Raphael}
+    \IEEEauthorblockA{
+        Computer Science Department\\
+        School of Computing and Creative Arts\\
+        Bina Nusantara University\\
+        Jakarta, Indonesia 11480\\
+        edward.raphael@binus.ac.id
+    }
+    %\hspace{0.5cm}
+
+    \and
+    \IEEEauthorblockN{Oneal Waseem}
+    \IEEEauthorblockA{
+        Computer Science Department\\
+        School of Computing and Creative Arts\\
+        Bina Nusantara University\\
+        Jakarta, Indonesia 11480\\
+        oneal.waseem@binus.ac.id
+    }
+    \hspace{0.5cm}
+    
+    \and
+    \IEEEauthorblockN{Sir Tyrone Raphael Joseph Vargas}
+    \IEEEauthorblockA{
+        Computer Science Department\\
+        School of Computing and Creative Arts\\
+        Bina Nusantara University\\
+        Jakarta, Indonesia 11480\\
+        sir.vargas@binus.ac.id
+    }
+    
+    \and
+    \IEEEauthorblockN{Grasheli Kusuma Andhini}
+    \IEEEauthorblockA{
+        Fashion Design\\
+        School of Design\\
+        Bina Nusantara University\\
+        Jakarta, Indonesia 11480\\
+        grasheli.andhini@binus.edu
+    }
+    \hspace{0.5cm}
+
+    \and
+    \IEEEauthorblockN{Feri Setiawan}
+    \IEEEauthorblockA{
+        Computer Science Department\\
+        School of Computing and Creative Arts\\
+        Bina Nusantara University\\
+        Jakarta, Indonesia 11480\\
+        feri.setiawan@binus.edu
+    }
+    \and
+    \IEEEauthorblockN{Nunung Nurul Qomariyah}
+    \IEEEauthorblockA{
+        Computer Science Department\\
+        School of Computing and Creative Arts\\
+        Bina Nusantara University\\
+        Jakarta, Indonesia 11480\\
+        nunung.qomariyah@binus.edu
+    }
+    \hspace{0.5cm}  
+}
+\begin{document}
+
+\maketitle
+
+% ---------- Abstract ----------
+\begin{abstract}
+Fashion design is not only a functional process but also a powerful medium for emotional expression of the designer or the individual wearing the garments. It can shape how garments communicate feelings such as calmness, boldness, confidence, or elegance. However, designers often struggle to translate their abstract emotional intentions into their visual form, as most current AI tools focus on style generation or trend prediction rather than emotional or Kansei-driven design. To address this challenge, the project proposes an AI framework combining Large Language Models for emotional text comprehension to interpret emotional and fashion-related language into a Generative Diffusion Model for image creation in the form of technical fashion drawings such as CAD-like visuals and fashion illustrations that match the emotionally descriptive inputs of the users. The expected outcome is an interactive website tool where users can input text, Kansei words, or personal sketches to visualize designs that match their emotional goals and style preferences. This project aims to empower designers, students, and researchers by introducing a new emotionally aware, AI-assisted fashion design where the best models (SSD-1B and SDXL) achieved up to 0.305 CLIP semantic alignment, 0.837 LPIPS sketch fidelity, and practical generation times of 108.33 s and 155.54 s per design, respectively, demonstrating semantic accuracy and deployable performance.
+\end{abstract}
+
+% ---------- Index Terms ----------
+\begin{IEEEkeywords}
+Fashion design, Kansei Engineering, Generative AI, Large Language Models (LLMs), Diffusion Models, Technical Drawings (CAD).
+\end{IEEEkeywords}
+
+% =====================================================
+\section{Introduction}
+% Explain the problem and motivation
+Fashion, an art that manifests emotion into physical media, is often described through kansei qualities such as calmness, elegance, or energy that shape both designer intent and wearer perception~\cite{ref_ibrahima2010,ref_zhang2023}. With the emergence of Artificial Intelligence, the staging process in designing sketches has accelerated to a scale where conceptual iterations can be generated within seconds, shifting part of the designer's role from a physical artisan toward prompt-driven interaction with generative AI~\cite{ref_rizzi}. Ultimately, the challenge now centers on how a generative AI can inject complex emotional nuances into a design while remaining useful within professional fashion workflows~\cite{ref_hakim2024}.
+
+Technical drawings in CAD-style format establish a baseline within industry standards that encourages precision and unambiguous communication between designers and manufacturers, yet they still fall short in how effectively they express emotions, particularly kansei qualities~\cite{ref_ma}. 
+
+Despite ongoing development of generative models for fashion design, existing approaches predominantly focus on photorealistic garment images, trend prediction, recommendation, outfit compatibility, or design ideation. Less attention has been given to CAD-style fashion technical drawings, where preserving silhouette structure is important for design communication. Moreover, limited work has systematically evaluated whether Kansei-based emotional descriptors, when expanded through a large language model, can improve semantic alignment in sketch-guided fashion generation while maintaining structural fidelity to the original CAD-style sketch~\cite{ref_albishri}.
+
+This work addresses that gap by proposing an end-to-end pipeline that accepts a CAD-style fashion sketch and kansei descriptors as input uses a large language modelcto expand the emotional intent into a structured prompt, and applies a sketch-guided diffusion model to generate emotionally descriptive CAD-style fashion drawings.
+
+The central hypothesis of this study is that LLM-expanded Kansei prompts can improve the semantic alignment between emotional design intent and generated fashion drawings. Measured using automatic metrics for semantic alignment, sketch fidelity, computational performance, including CLIP-based text–image similarity, LPIPS-based perceptual distance, Sketch IoU, throughput/latency measurements, and VRAM usage. Inspired by recent work that applies automatic metrics  in applied generative AI systems~\cite{ref_yang2024,ref_lian2023,ref_radford2021}.
+
+A secondary hypothesis is that larger or more recent diffusion backbones may improve semantic alignment but introduce higher generation latency and VRAM usage, creating a measurable quality efficiency trade-off for deployment in interactive fashion design workflows. Finally, a third hypothesis serves to test whether increasing ControlNet conditioning scale improves sketch fidelity, measured by lower LPIPS and higher Sketch IoU, but may reduce emotional/style expressiveness, measured by CLIP score.
+
+The study compares multiple diffusion-based generation models, including Stable Diffusion v1.5~\cite{ref_rombachetal2022}, SDXL, and SSD-1B, to determine which configuration provides the strongest balance between emotional semantic alignment, sketch fidelity, and computational efficiency for CAD-style fashion drawing generation.
+
+% =====================================================
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Generative AI in Fashion Design}
+Fashion design has seen an increase in the use of Generative AI, especially for the initial process of ideation, visualization, and prototyping. Niyompatama and Lapatoura~\cite{ref_niyompatama} state generative AI improves the speed and efficiency of the initial ideation process by allowing fashion designers to hastily create outfits, silhouettes, and new visuals for quick inspiration. Therefore, generative AI essentially builds off of the process of reinterpretations and adaptation within the fashion industry due to the generative AI’s data-driven nature.
+
+Rizzi and Bettiol~\cite{ref_rizzi}’s statement also adds on to Niyompatama and Lapatoura’s remark, saying that a collaboration between generative AI and fashion designers allows them to use AI as an assistant to create moodboards, visualizing concepts, and virtual prototyping. Tools such as Midjourney, Runway, Firefly, and Stable Diffusion are often used for these tasks. However, these generative AIs are not fine tuned for CAD-like technical fashion drawings or to use emotionally driven Kansei words.
+
+Albishri and Almisbahi~\cite{ref_albishri}’s study discovered that fashion students have a strong interest in adding AI into their design pipeline. With 61.9\% of students believing generative AI increases creativity, 71.4\% state that it helps with balancing between innovation and functionality, and 81\% stating that AI reduces production costs especially for prototyping and hastens the design ideation phase.
+
+
+\subsection{Kansei Engineering and Emotion-Aware Design}
+Quan et al.~\cite{ref_quan}’s research integrates deep learning with Kansei engineering by treating kansei descriptors such as \emph{elegant}, \emph{sporty}, and \emph{comfortable} as independent variables and garment visual features as dependent variables. From that, they stated AI models can effectively translate emotional intent into concrete fashion design outcomes. 
+
+Then, Ma et al. ~\cite{ref_ma} adds on by applying emotional data visualization to personalize fashion.
+
+Additionally, Du et al.~\cite{ref_du} proposes a conditional-controlled AI image generation model based on Kansei engineering. By using emotional keywords as parameters, the generative AI models were controlled to generate the desired design output that matches with the goal of the researcher. 
+
+
+Bias within a generative AI model is caused by overfitting and creates a disparity within the output images. Mehta \& Buntain~\cite{ref_mehta} delved into this research by comparing Stable Diffusion v1.5 and Midjourney to identify tendencies within the output and compare whether it still aligns with human perception. A dataset of 900 images were surveyed by human participants, then analyzed using CNNs and Pearson's correlation. Once the validation metrics are done, an ANOVA test was performed showing a significant bias across emotion categories, confirming consistent disparities between human and machine-based interpretation.
+
+\subsection{LLM-Guided Prompt Expansion}
+Renaningtyas et al.~\cite{ref_renaningtyas} conducted an in-depth analysis of the implementation of Computer Vision and Machine Learning in the fashion industry, particularly its use in ideation, emotional translation, and sustainability. The authors display how AI models like DeepFashion and SHAPY can classify garments, styles, and generate visuals, as well as how CV and ML can be used for trend forecasting, allowing designers to anticipate new styles and minimize waste. Moreover, this AI framework negates the need for multiple hand-drawn or physical prototypes as well as allowing designers to explore different emotional directions digitally. Renanningtyas et al.’s study demonstrates that AI is capable of being used as a tool for image generation and an analytical analysis to predict trends.
+
+
+\subsection{LPIPS in Fashion Design Evaluation}
+Studies correlated with AI-assisted fashion design have adopted an evaluation metric known as LPIPS. This metric assesses the visual similiarity between the generated fabrics and the given prompt. Lamia \& Mim~\cite{lamia2025transformingfashionaicomparative} utilized this metric within their apparel design pipeline, achieving scores of around 0.2, indicating a strong visual alignment between the following variables. 
+
+\subsection{Evaluating similarity between generated text-prompts and image-outputs with CLIP}
+Wang et al. ~\cite{lampe2024dictidiffusionbasedclothingdesigner} proposed DiCTI, a diffusion-based model for creating multiple high-resolution photorealistic images of garments via text input only. These images are evaluated via CLIP, with the prompt being processed by a text-encoder to create feature vectors, that are then aligned with image talents depending on their cosine similarity scores obtained from denoising. A high score indicates proper alignment, with the generated image matching the intendent emotional and stylistic context within the prompt.
+
+
+% =====================================================
+\section{Methodology}
+\label{sec:method}
+
+\subsection{System Overview}
+
+The program is capable of emotionally aware fashion design generation by transforming inputs of kansei keywords, tones keywords, and uploaded CAD-style sketches into a fully rendered fashion design that matches the intended tone and keywords of the input, as visualized in Figure 2. The program initializes this process by allowing users to upload a PNG or JPEG of a sketch or to use from an available dataset of 2D CAD-style sketches, and selecting emotional/aesthetic preferences via kansei and tone words. These inputs are then interpreted by an LLM to create a highly detailed prompt. A generative AI will create an image with the prompt as well as the original uploaded sketch to produce a coloured and textured fashion rendering that preserves the initial silhouette and design of the sketch.
+
+\subsection{Sketch Dataset, Input Data, Kansei Vocabulary}
+
+For user inputs, a UI (As shown in Figure 1) is set up to allow users to send sketches in the form of a PNG and JPEG upload via a web application. Or, users can upload an image available from our sketch dataset consisting of 41 2D CAD-style fashion drawings  highlighting the key features and silhouette of different types of clothing (Tiered Skirts, Long-hemmed Dresses, Double-Breasted Jackets, etc). The uploaded image is then resized to a 512x512 image and grayscaled for easier edge detection. For future storage, all uploaded sketches are also stored with unique identifiers, in order to use the data for future evaluation. Users then choose up to 3 tones keywords that is used by the program to determine the design direction of the output, examples include Elegant, Minimalist, Avant-garde, Steet, Romantic, etc. Furthermore, users can limitlessly choose kansei words to build the intended tone, adding on specific features or attributes to the output, such as Monochrome, Airy, Geometric, Matte, Sheer, etc.
+
+%\begin{figure}[hbt!]
+%    \centering
+%    \includegraphics[width=1\linewidth
+%    {ui_n_sketch.png}
+%    \caption{Front-end UI and Example Sketch}
+%    \label{fig:placeholder}
+%\end{figure}
+
+\begin{figure}[hbt!]
+    \centering
+    \includegraphics[width=1\linewidth]{ui_n_sketch.png}
+    \caption{Front-end UI and Example Sketch}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection{LLM Interpretation Module}
+
+This program uses Google Gemini 2.5 Flash, a multimodal vision-language model, accessed via an API. The LLM is instructed to act as a 'fashion design technical assistant', where it will analyze the provided CAD sketch, tones, and Kansei words. It will attempt to create a prompt to be given towards the generative AI. Within this prompt, it will attempt to preserve the silhouette, structural elements of the sketch, translate the tones and kansei words into specific visual attributes, and optimize the prompt for a fashion illustration rendering. The program then uses a LLM-Generated Prompt strategy. Where instead of a generative AI being fed an image, it will instead be given to an LLM to interpret the image, tones, and kansei words into a context-aware and highly detailed prompt. it will create much richer and specific descriptions, preserves the sketch specifics, and allows for flexible semantic mapping. This approach leverages the multi-modal understanding of the LLM. When the LLM is given an input, it will do a multi-step interpretation of it. Initially, it examines the base64-encoded sketch for its garment type, silhouette shape, design details, proportions and construction lines. Then it will incorporate the tones and kansei selection into the design specifications of the output. The LLM will design its prompt to be a length of 3-4 sentences, each containing details about the silhouette and structural description, colour palette and fabric, texture and details. Lastly, it will add rendering keywords such as 'well-lit' and 'technical drawing' to ensure a proper format for the output.
+
+\subsection{Generative Module}
+
+This project uses Stable Diffusion v1.5 as the base model, ControlNet v1.1 with Canny edge detection for the conditioning model to improve edge detection and improve sketch structure and line art during generation. Lastly, UniPC Multistep Scheduler with 20 inference steps is used as a scheduler to improve convergence speed and maintain output quality with fewer steps. Then, the CAD-sketch uploaded by the user will be pre-processed by being converted to RGB format, resized to 512x512 pixels, applied with a Canny edge detection model to extract the structural lines, normalized to an edge map to [0, 1] range. The edge-detected sketch serves as spatial conditioning input, with a conditioning scale of 1.0, meaning full structural preservation. This will guide the diffusion process to maintain the exact silhouette of the uploaded image and helps prevent distortion. The core hyper-parameters for this includes:
+
+\begin{itemize}
+    \item \textbf{Inference Steps}: Refers to the number of denoising iterations the selected AI diffusion model performs, a higher value indicates better quality output, however, it is much more resource intensive.
+     \item \textbf{Guidance Scale:}: The guidance scale controls how strongly the model follows the text prompt, with higher values producing outputs more accurate to the prompt.
+     \item \textbf{ControlNet Conditioning Scale}: Determines how strict the output preserves the structure of the original sketch, with a maximum value of 1 meaning that ensures maximum preservation of the input sketch.
+     \item \textbf{Seed}: A fixed random seed for reproducibility, this ensures identical results across multiple runs with the same hyperparameters.
+\end{itemize}
+
+\begin{figure}[hbt!]
+    \centering
+    \includegraphics[width=1\linewidth]{block_diagram.png}
+    \caption{Block Diagram Displaying the Research and Data Flow of the Program}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection{Evaluation Metrics}
+
+To evaluate the output of each AI, OpenAI's Contrastive Language-Image Pretraining (CLIP) is used to evaluate the semantic alignment and compute the cosine similarity of the input prompt and generated image. This is done by encoding the text prompt and image into a shared embedding space through contrastive pretraining on 400 million image to text pairs. From this, a score of a range of -1 to +1 is returned, and a 1 indicates that the output perfectly matches the emotional or contextual intent of the prompt, while a 0 does not ~\cite{ref_radford2021}. The LPIPS Score will be used to evaluate the perceptual similarity between the sketch uploaded by the user and the generated output using a deep features from a learning model named AlexNet. A lower score indicates a greater preservation of the original sketch, while high scores may indicate a completely different generated output from the original sketch ~\cite{zhang2018unreasonable}. Lastly, Intersection over Union measures edge overlap between the sketch and generated image using Canny edge detection, determining if the output has a similar outline to the sketch uploaded by the user. This is done by extracting the binary edge maps from the input sketch and image output, and it then measures for overlaps in the outline; a higher score indicates the output preserved the original sketch's outline and fidelity. ~\cite{zitnickIOUs}.
+
+\subsection{System Performance Metrics}
+
+The Inference or through-put time (time from API request to generated image delivery) will be recorded. This includes the time to process the uploaded image, tones, and Kansei word selections. The LLM inference and prompt generation. Lastly, image generation and delivery. Peak and total GPU/CPU memory consumption will be logged and monitored for each generation as well.
+
+\subsection{Docker Deployment}
+
+A container-based deployment approach was used to ensure portability, reproducibility and scalability of the system and program, with the system architecture being made up of a decoupled frontend and backend deployed in Vercel and RunPod respectively. The backend was packaged as a Docker container, and all dependencies, including machine learning libraries, were defined in the Dockerfile. GitHub Actions was used as the continuous integration pipeline to build the Docker image, which is then pushed to the GitHub Container Registry as a centralized container image repository that is easily accessible to downstream services. RunPod Pod was utilized as the infrastructure for backend deployment, mainly for its simple and on-demand access to GPU resources, helping with efficient execution of the machine learning models used, and reduced infrastructure complexity that helped streamline the deployment process. The frontend was deployed as a static web application on Vercel due to Vercel's optimized support for static applications and global edge distribution. The frontend and backend communicate with each other through HTTPs-based REST API calls. 
+
+This strategy of decoupling the deployment of the frontend and backend aligns with modern DevOps practices\cite{ref_devops} and helps achieve modularity and scalability, where updates to the backend can be done by rebuilding and redeploying the Docker image in the CI pipeline, and updates to the frontend can be deployed independently on Vercel.
+
+\begin{figure}[hbt!]
+    \centering
+    \includegraphics[width=0.75\linewidth]{docker-diagram.png}
+    \caption{Docker to Vercel Deployment}
+\end{figure}
+
+% =====================================================
+\section{Results and Discussion}
+\label{sec:results}
+
+\subsection{LLM-Generated Prompts}
+
+The Gemini LLM prompt generator successfully produces highly detailed, structure, and keyword filled prompts. It integrates tones and Kansei words selected by the users and follow the rules given in its directives. The following is an example prompt created by the LLM:
+
+\begin{quote}
+\textit{``Generate a full-length, high-waisted wrapped pant design, faithfully preserving the exact wide-leg silhouette that flows voluminously from the hip down, resembling a skirt. It features an asymmetrical wrap-front closure, secured by a single elegant button visible on the wearer's left side at the waist, and a gently curved, floor-length hem. To achieve an elegant and airy feel, the pants should be rendered in a luxurious, ultra-fluid fabric like silk chiffon or a lightweight cupro, exhibiting exquisite drape and subtle sheen. The vibrant styling should come through a sophisticated color palette such as rich teal, deep orchid, or soft antique gold, with delicate, natural folds and movement, presented as a high-fashion illustration with realistic material textures and an artistic clarity.''}
+\end{quote}
+
+From this prompt, we can observe the LLM defining the proper garment structure (high-waisted, wide-leg, wrap-front closure, button placement), ensuring ControlNet has a higher chance of properly identifying edges for the output image. Then, moving onto describing fabric materials  (silk chiffon, cupro), its physical properties (ultra-fluid, drape, sheen), providing enough keywords for the diffusion model to interpret the intended texture and properties of the article of clothing. As prompted from its directives, it also incorporates the use of kansei keywords (elegant and airy feel, luxurious) allowing the LLM to create key details within the prompt that match the intended tone, additionally its direct use within the prompt also guide the generative AI in following the intended design language. The LLM continues to re-emphasize the rendering instructions  (fashion illustration with realistic fabric textures, maintain sketch silhouette exactly) to ensure a proper format, background, and structural fidelity with each output.
+
+\subsection{Generated Images}
+
+\subsubsection{Figure 4: Minimalist A-Line Dress}
+
+\begin{figure}[hbt!]
+    \centering
+    \includegraphics[width=0.5\linewidth]{dress1.png}
+    \caption{AI Generated Minimalist A-Line Dress}
+    \label{fig:placeholder}
+\end{figure}
+
+The generative AI properly follows the principles of an A-Line Dress silhouette, with no sleeves, and a knee-length hem. Then, the smooth and matte fabric texture that was generated suggests a cotton or linen material that matches with the elegant tone directive. Additionally, the draping properly adds on to this. For the colour, the LLM gave a cream shade which aligns with the elegance directive, adhering to the rule of using muted colours. A solid colour grey background allows the dress to be the main subject of the image without a distracting background. Lastly, a clearer background allows for easier evaluation of the CLIP, LPIPS, and Sketch IOU metrics.
+
+\subsubsection{Figure 5: Pleated Dress}
+
+\begin{figure}[hbt!]
+    \centering
+    \includegraphics[width=0.5\linewidth]{dress2.png}
+    \caption{AI Generated Pleated Dress}
+    \label{fig:placeholder}
+\end{figure}
+
+It follows the basic principles of a dress, being sleeveless and knee-length or longer. In addition, the vertical pleating of the dress adds an extra amount of uniqueness and interest, especially after the Kansei word “textured” was used for this generation; furthermore, the drape and voluminous nature of the generation matches that of a normal dress. Moreover, a gray tone is a very neutral colour, as this is due to the fact the prompt did not specify any vibrant or saturated colour. Finally, the generative AI continues to provide a blank solid background, allowing the dress to be the main centerpiece of attention, while also allowing for easier AI-based evaluation.
+
+\subsection{AI-Based Evaluation}
+
+\begin{table}[h]
+\centering
+\caption{Fixed Hyperparameters for Comparative Evaluation}
+\label{tab:params}
+\begin{tabular}{ll}
+\hline
+Parameter & Value \\
+\hline
+Guidance Scale ($CFG$) & 7.5 \\
+Conditioning Scale & 1.0 \\
+Inference Steps & \{10, 20\} \\
+Sampler Seed & 42 \\
+\hline
+\end{tabular}
+\end{table}
+
+All models were evaluated with the same hyperparameters to ensure a fair test. With a high 7.5 for enough prompt adherence and enough freedom, 1.0 on the conditioning scale for maximum adherence to the sketch silhouette, 10 and 20 iteration steps to assess the tradeoffs of quality and speed, and a fixed seed for reproducibility.
+
+\begin{table}[h]
+\centering
+\caption{Semantic Alignment and Sketch Fidelity Metrics}
+\label{tab:ai_metrics}
+\scalebox{0.85}{
+\begin{tabular}{lccc}
+\hline
+Model   & CLIP Score $\uparrow$ & LPIPS $\downarrow$ & Sketch IOU $\uparrow$ \\
+\hline
+sd-v1.5 & 0.2716 & 1.0010 & 0.0027 \\
+sdxl    & 0.2814 & 0.9929 & 0.0040 \\
+ssd-1b  & \textbf{0.3053} & \textbf{0.8371} & \textbf{0.0042} \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+SSD-1B achieved the highest CLIP and lowest LPIPS score, despite being the smallest model, it has a better semantic alignment between the prompt and generated output, additionally the LPIPs score indicates SSD-1B creates an output that remains similar to the input sketch compared to both other models. However, compared to the global average, additional improvements could be made to improve the performance of this model.
+
+\subsection{System Performance}
+Throughput was measured to determine the viability of integrating these models into real-time design workflows.
+
+\begin{table}[h]
+\centering
+\caption{System Throughput and Resource Utilization}
+\label{tab:throughput}
+\scalebox{0.85}{
+\begin{tabular}{lcccc}
+\hline
+Model   & Mean Time (s) & Std Dev (s) & Max (s) & VRAM (GB) \\
+\hline
+sd-v1.5 & \textbf{21.69} & 6.36  & 31.13  & \textbf{3.91} \\
+sdxl    & 155.54        & 28.98 & 185.05 & 10.08 \\
+ssd-1b  & 108.33        & 25.59 & 142.53 & 7.73 \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+Stable Diffusion 1.5 had the best computational efficiency, creating outputs 7 times faster than SDXL and 5 times faster than SSD-1B, while consuming only 3.91 GB of RAM. However, despite this, SSD-1B still creates a quantifiably better output compared to SD 1.5, with only a smaller trade off in system and resource performance.
+
+% =====================================================
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+An AI integrated application that bridges emotional expression and technical fashion design via LLMs and Generative AI addresses a critical gap in AI-assisted fashion tools. By using Gemini 2.5 for a multi-modal prompt generation, and Stable Diffusion, SDXL, and SSD-1b models that have fair performing semantic alignment and sketch preservation, it becomes an accessible tool for fashion designers to find inspiration during the ideation process. Especially with a deployed front-end, low RAM usage, quick throughput time, and the freedom to upload any sketch for generative AI guidance. Future work will focus on fine-tuning generative models to improve its semantic alignment and sketch fidelity. As well as expanding the Kansei vocabulary to include additional keywords that could provide new potential emotional nuances, structures, and aesthetics. Lastly, additional generative models such as SDXL-Turbo could represent a promising direction for improved metric results.
+% =====================================================
+
+\section*{Supplementary Codes}
+\label{sec:supplementarycodes}
+
+The codebase used in this paper can be accessed via Github: 
+\url{https://github.com/ghonilcloud/AIFashionChatBot}
+
+\section*{Credit Authorship Contribution Statement}
+\noindent
+\textbf{Oneal Waseem, Sir Tyrone Raphael Joseph Vargas, Edward Raphael, Grasheli Kusuma Andhini}: Conceptualization, Data Curation, Formal analysis, Investigation, Methodology, Resources, Software, Validation, Visualization, Writing - original draft, Writing - review \& editing. \textbf{Feri Setiawan, Nunung Nurul Qomariyah}: Conceptualization, Writing - Review \& Editing, Supervision, Project administration, Funding acquisition.
+
+{\footnotesize
+\bibliographystyle{IEEEtran}
+\bibliography{references.bib}  
+}
+
+\end{document}
