@@ -74,6 +74,8 @@ def read_rows(input_path: Path) -> list[dict[str, str]]:
 def summarize(rows: list[dict[str, str]], group_keys: tuple[str, ...]) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, ...], list[dict[str, str]]] = defaultdict(list)
     for row in rows:
+        if not is_successful_row(row):
+            continue
         key = tuple(row.get(group_key, "") for group_key in group_keys)
         grouped[key].append(row)
 
@@ -92,6 +94,12 @@ def summarize(rows: list[dict[str, str]], group_keys: tuple[str, ...]) -> list[d
         summary_rows.append(summary)
 
     return summary_rows
+
+
+def is_successful_row(row: dict[str, str]) -> bool:
+    """Summaries should describe completed generations, not failed attempts."""
+    status = row.get("status")
+    return status == "ok" or (status in (None, "") and bool(row.get("generated_image_path")))
 
 
 def write_summary_csv(

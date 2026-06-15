@@ -147,9 +147,12 @@ async def generate_design(
     generated_filename = generated_path.name
     generated_image_url = f"/media/generated/{generated_filename}"
 
+    selected_model = generation_metadata.get("model_key", model_key) if generation_metadata else model_key
+    selected_base_model = generation_metadata.get("base_model", base_model) if generation_metadata else base_model
+    model_label = selected_base_model or selected_model
     notes = (
-        f"Generated using Stable Diffusion v1.5 + ControlNet with the {normalized_prompt_strategy} prompt "
-        "conditioned on your CAD sketch."
+        f"Generated using {selected_model} ({model_label}) + ControlNet with the "
+        f"{normalized_prompt_strategy} prompt conditioned on your CAD sketch."
     )
 
     return GenerateDesignResponse(

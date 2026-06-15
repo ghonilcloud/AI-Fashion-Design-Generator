@@ -19,6 +19,7 @@ from PIL import Image
 import torch
 from diffusers import (
     StableDiffusionControlNetPipeline,
+    StableDiffusionXLControlNetPipeline,
     ControlNetModel,
     UniPCMultistepScheduler,
 )
@@ -31,14 +32,20 @@ MODEL_REGISTRY = {
     "sd_v1_5": {
         "base_model": "runwayml/stable-diffusion-v1-5",
         "controlnet_model": "lllyasviel/sd-controlnet-canny",
+        "pipeline": "sd",
+        "image_size": 512,
     },
     "sdxl": {
         "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
         "controlnet_model": "diffusers/controlnet-canny-sdxl-1.0",
+        "pipeline": "sdxl",
+        "image_size": 1024,
     },
     "ssd_1b": {
         "base_model": "segmind/SSD-1B",
         "controlnet_model": "diffusers/controlnet-canny-sdxl-1.0",
+        "pipeline": "sdxl",
+        "image_size": 1024,
     },
 }
 
@@ -49,7 +56,7 @@ def resolve_model_config(
     model_key: str = "sd_v1_5",
     base_model: str | None = None,
     controlnet_model: str | None = None,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Resolve registry defaults plus optional explicit model overrides."""
     if model_key not in MODEL_REGISTRY:
         allowed = ", ".join(sorted(MODEL_REGISTRY))
@@ -165,7 +172,7 @@ def load_pipeline(
     controlnet_model: str | None = None,
     device: str | None = None,
     dtype: str | torch.dtype | None = None,
-) -> StableDiffusionControlNetPipeline:
+) -> StableDiffusionControlNetPipeline | StableDiffusionXLControlNetPipeline:
     """
     Load Stable Diffusion + ControlNet pipeline.
     
@@ -176,9 +183,11 @@ def load_pipeline(
     resolved_dtype = resolve_dtype(dtype, resolved_device)
     resolved_base_model = model_config["base_model"]
     resolved_controlnet_model = model_config["controlnet_model"]
+    pipeline_type = model_config.get("pipeline", "sd")
 
     cache_key = (
         model_key,
+        pipeline_type,
         resolved_base_model,
         resolved_controlnet_model,
         resolved_device,
@@ -192,8 +201,13 @@ def load_pipeline(
         dtype=resolved_dtype,
         device=resolved_device,
     )
-    
-    pipe = StableDiffusionControlNetPipeline.from_pretrained(
+
+    pipeline_cls = (
+        StableDiffusionXLControlNetPipeline
+        if pipeline_type == "sdxl"
+        else StableDiffusionControlNetPipeline
+    )
+    pipe = pipeline_cls.from_pretrained(
         resolved_base_model,
         controlnet=controlnet,
         torch_dtype=resolved_dtype,
@@ -216,17 +230,17 @@ def load_pipeline(
     return pipe
 
 
-def preprocess_sketch(sketch_path: str | Path) -> Image.Image:
+def preprocess_sketch(sketch_path: str | Path, size: tuple[int, int] = (512, 512)) -> Image.Image:
     """
     Preprocess CAD sketch:
     - Load image
     - Convert to grayscale
-    - Resize to 512x512 (standard SD size)
+    - Resize to the model's expected conditioning size
     - Optional: Apply line detection for cleaner edges
     """
     sketch = Image.open(sketch_path).convert("L")  # Grayscale
-    sketch = sketch.resize((512, 512), Image.Resampling.LANCZOS)
-    return sketch
+    sketch = sketch.resize(size, Image.Resampling.LANCZOS)
+    return sketch.convert("RGB")
 
 
 def generate_fashion_design(
@@ -273,6 +287,7 @@ def generate_fashion_design(
     resolved_device = resolve_device(device)
     resolved_dtype = resolve_dtype(dtype, resolved_device)
     resolved_sketch_id = sketch_id or Path(sketch_path).stem
+    image_size = int(model_config.get("image_size", 512))
     final_output_path = resolve_output_path(
         output_path=output_path,
         sketch_id=resolved_sketch_id,
@@ -291,6 +306,8 @@ def generate_fashion_design(
         "model_key": model_key,
         "base_model": model_config["base_model"],
         "controlnet_model": model_config["controlnet_model"],
+        "pipeline": model_config.get("pipeline", "sd"),
+        "image_size": image_size,
         "num_inference_steps": num_inference_steps,
         "guidance_scale": guidance_scale,
         "controlnet_conditioning_scale": controlnet_conditioning_scale,
@@ -310,7 +327,7 @@ def generate_fashion_design(
         generator = None
     
     # Preprocess sketch
-    sketch = preprocess_sketch(sketch_path)
+    sketch = preprocess_sketch(sketch_path, size=(image_size, image_size))
     
     # Load pipeline (or reuse from cache if available)
     pipe = load_pipeline(

@@ -14,3 +14,5 @@ pillow
 controlnet-aux
 accelerate
 safetensors
+lpips
+opencv-python

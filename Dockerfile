@@ -15,7 +15,11 @@ RUN pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY backend ./backend
-WORKDIR /app/backend
+COPY frontend ./frontend
+COPY experiments ./experiments
+COPY datasets ./datasets
+
+WORKDIR /app
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1"]
+CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --workers 1"]

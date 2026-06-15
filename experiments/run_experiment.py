@@ -39,14 +39,20 @@ MODEL_REGISTRY_FALLBACK = {
     "sd_v1_5": {
         "base_model": "runwayml/stable-diffusion-v1-5",
         "controlnet_model": "lllyasviel/sd-controlnet-canny",
+        "pipeline": "sd",
+        "image_size": 512,
     },
     "sdxl": {
         "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
         "controlnet_model": "diffusers/controlnet-canny-sdxl-1.0",
+        "pipeline": "sdxl",
+        "image_size": 1024,
     },
     "ssd_1b": {
         "base_model": "segmind/SSD-1B",
         "controlnet_model": "diffusers/controlnet-canny-sdxl-1.0",
+        "pipeline": "sdxl",
+        "image_size": 1024,
     },
 }
 
@@ -58,6 +64,7 @@ METADATA_DIR = RESULTS_DIR / "metadata"
 
 CSV_FIELDS = [
     "run_id",
+    "status",
     "sketch_id",
     "sketch_path",
     "prompt_strategy",
@@ -76,6 +83,7 @@ CSV_FIELDS = [
     "latency_seconds",
     "peak_vram_gb",
     "timestamp",
+    "error",
 ]
 
 
@@ -90,7 +98,7 @@ def main() -> None:
 
     setup_output_dirs()
     sketches = find_sketches(args.dataset, limit=args.limit)
-    existing_run_ids = load_existing_run_ids(RAW_RESULTS_CSV)
+    existing_run_ids = load_completed_run_ids(RAW_RESULTS_CSV)
     tones = split_cli_list(args.tones)
     kansei_words = split_cli_list(args.kansei_words)
 
@@ -131,7 +139,6 @@ def main() -> None:
                 failed += 1
                 error_row = build_error_row(run_id, sketch_id, sketch_path, combo, exc)
                 append_csv_row(RAW_RESULTS_CSV, error_row)
-                existing_run_ids.add(run_id)
                 print(f"Failed: {run_id}: {exc}")
 
     print(f"Done. completed={completed}, skipped={skipped}, failed={failed}")
@@ -181,17 +188,18 @@ def run_one(
         )
 
     generated_image_path = Path(generation_metadata["output_path"])
+    metrics_config = {
+        "compute_clip": True,
+        "compute_lpips": True,
+        "compute_sketch_iou": True,
+        "latency_seconds": runtime.get("elapsed_seconds"),
+        "peak_vram_gb": runtime.get("cuda_peak_memory_gb"),
+    }
     metrics = evaluate_generation(
         sketch_path=sketch_path,
         generated_image_path=generated_image_path,
         prompt=prompt,
-        metrics_config={
-            "compute_clip": True,
-            "compute_lpips": True,
-            "compute_sketch_iou": True,
-            "latency_seconds": runtime.get("elapsed_seconds"),
-            "peak_vram_gb": runtime.get("cuda_peak_memory_gb"),
-        },
+        metrics_config=metrics_config,
     )
 
     metadata = {
@@ -199,8 +207,10 @@ def run_one(
         "timestamp": timestamp,
         "sketch_id": sketch_id,
         "sketch_path": str(sketch_path),
+        "prompt": prompt,
         "prompt_path": str(prompt_path),
         "generation_metadata": generation_metadata,
+        "metrics_config": metrics_config,
         "metrics": metrics,
     }
     metadata_path = METADATA_DIR / f"{run_id}.json"
@@ -208,6 +218,7 @@ def run_one(
 
     return {
         "run_id": run_id,
+        "status": "ok",
         "sketch_id": sketch_id,
         "sketch_path": str(sketch_path),
         "prompt_strategy": normalized_prompt_strategy,
@@ -226,6 +237,7 @@ def run_one(
         "latency_seconds": metrics.get("latency_seconds"),
         "peak_vram_gb": metrics.get("peak_vram_gb"),
         "timestamp": timestamp,
+        "error": "",
     }
 
 
@@ -296,11 +308,19 @@ def append_csv_row(csv_path: Path, row: dict[str, Any]) -> None:
         writer.writerow({field: row.get(field) for field in CSV_FIELDS})
 
 
-def load_existing_run_ids(csv_path: Path) -> set[str]:
+def load_completed_run_ids(csv_path: Path) -> set[str]:
     if not csv_path.exists():
         return set()
     with csv_path.open(newline="", encoding="utf-8") as handle:
-        return {row["run_id"] for row in csv.DictReader(handle) if row.get("run_id")}
+        completed: set[str] = set()
+        for row in csv.DictReader(handle):
+            run_id = row.get("run_id")
+            if not run_id:
+                continue
+            status = row.get("status")
+            if status == "ok" or (status in (None, "") and row.get("generated_image_path")):
+                completed.add(run_id)
+        return completed
 
 
 def remove_run_id_from_csv(csv_path: Path, run_id: str) -> None:
@@ -327,6 +347,7 @@ def build_error_row(
     metadata_path = METADATA_DIR / f"{run_id}.json"
     metadata = {
         "run_id": run_id,
+        "status": "error",
         "timestamp": timestamp,
         "sketch_id": sketch_id,
         "sketch_path": str(sketch_path),
@@ -337,6 +358,7 @@ def build_error_row(
 
     return {
         "run_id": run_id,
+        "status": "error",
         "sketch_id": sketch_id,
         "sketch_path": str(sketch_path),
         "prompt_strategy": combo["prompt_strategy"],
@@ -349,6 +371,7 @@ def build_error_row(
         "seed": combo["seed"],
         "prompt": f"ERROR: {exc}",
         "timestamp": timestamp,
+        "error": str(exc),
     }
 
 

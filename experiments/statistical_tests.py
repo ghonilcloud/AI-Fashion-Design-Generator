@@ -129,6 +129,9 @@ def analyze_metric(rows: list[dict[str, str]], metric: str) -> dict[str, Any]:
 def paired_values(rows: list[dict[str, str]], metric: str) -> list[tuple[float, float]]:
     grouped: dict[tuple[str, ...], dict[str, float]] = defaultdict(dict)
     for row in rows:
+        if not is_successful_row(row):
+            continue
+
         prompt_strategy = row.get("prompt_strategy")
         if prompt_strategy not in {PROMPT_A, PROMPT_B}:
             continue
@@ -145,6 +148,11 @@ def paired_values(rows: list[dict[str, str]], metric: str) -> list[tuple[float, 
         if PROMPT_A in values and PROMPT_B in values:
             pairs.append((values[PROMPT_A], values[PROMPT_B]))
     return pairs
+
+
+def is_successful_row(row: dict[str, str]) -> bool:
+    status = row.get("status")
+    return status == "ok" or (status in (None, "") and bool(row.get("generated_image_path")))
 
 
 def normality_test(differences: list[float]) -> dict[str, Any]:
