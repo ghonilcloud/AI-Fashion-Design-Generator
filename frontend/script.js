@@ -5,6 +5,7 @@ const API_BASE_URL = window.API_BASE_URL || "http://localhost:8000";
 let uploadedFile = null;
 let availableTones = [];
 let availableKanseiWords = [];
+let lastGenerationSettings = null;
 
 // DOM Elements
 const uploadArea = document.getElementById('uploadArea');
@@ -15,10 +16,16 @@ const generateBtn = document.getElementById('generateBtn');
 const tonesContainer = document.getElementById('tonesContainer');
 const kanseiWordsContainer = document.getElementById('kanseiWordsContainer');
 const promptStrategySelect = document.getElementById('promptStrategy');
+const modelKeySelect = document.getElementById('modelKey');
+const inferenceStepsSelect = document.getElementById('inferenceSteps');
+const guidanceScaleInput = document.getElementById('guidanceScale');
+const controlnetScaleSelect = document.getElementById('controlnetScale');
+const seedInput = document.getElementById('seedInput');
 const resultsSection = document.getElementById('resultsSection');
 const originalSketch = document.getElementById('originalSketch');
 const generatedImage = document.getElementById('generatedImage');
 const promptDisplay = document.getElementById('promptDisplay');
+const metadataGrid = document.getElementById('metadataGrid');
 const notesDisplay = document.getElementById('notesDisplay');
 const copyPromptBtn = document.getElementById('copyPromptBtn');
 const errorToast = document.getElementById('errorToast');
@@ -178,7 +185,15 @@ async function handleGenerate() {
         const formData = new FormData();
         formData.append('image', uploadedFile);
         formData.append('kansei_text', 'Fashion design based on selected tones and Kansei words');
-        formData.append('prompt_strategy', promptStrategySelect ? promptStrategySelect.value : 'llm');
+        const generationSettings = getAdvancedSettings();
+        lastGenerationSettings = generationSettings;
+
+        formData.append('prompt_strategy', generationSettings.prompt_strategy);
+        formData.append('model_key', generationSettings.model_key);
+        formData.append('num_inference_steps', generationSettings.num_inference_steps);
+        formData.append('guidance_scale', generationSettings.guidance_scale);
+        formData.append('controlnet_conditioning_scale', generationSettings.controlnet_conditioning_scale);
+        formData.append('seed', generationSettings.seed);
         
         // Add selected tones
         const selectedTones = getSelectedValues('tone');
@@ -226,14 +241,77 @@ function displayResults(result) {
     promptDisplay.textContent = result.llm_prompt;
     
     // Show notes
-    const strategyNote = result.prompt_strategy ? `Prompt strategy: ${result.prompt_strategy}. ` : '';
-    notesDisplay.textContent = `${strategyNote}${result.notes || 'No additional notes'}`;
+    const metadata = normalizeGenerationMetadata(result);
+    renderGenerationMetadata(metadata);
+    notesDisplay.textContent = result.notes || 'No additional notes';
     
     // Show results section
     resultsSection.style.display = 'block';
     
     // Scroll to results
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function getAdvancedSettings() {
+    return {
+        prompt_strategy: promptStrategySelect ? promptStrategySelect.value : 'llm',
+        model_key: modelKeySelect ? modelKeySelect.value : 'sd_v1_5',
+        num_inference_steps: inferenceStepsSelect ? inferenceStepsSelect.value : '20',
+        guidance_scale: guidanceScaleInput ? guidanceScaleInput.value || '7.5' : '7.5',
+        controlnet_conditioning_scale: controlnetScaleSelect ? controlnetScaleSelect.value : '1.0',
+        seed: seedInput ? seedInput.value || '42' : '42'
+    };
+}
+
+function normalizeGenerationMetadata(result) {
+    const metadata = result.generation_metadata || {};
+    const fallback = lastGenerationSettings || getAdvancedSettings();
+
+    return {
+        model_key: metadata.model_key || fallback.model_key,
+        prompt_strategy: result.prompt_strategy || metadata.prompt_strategy || fallback.prompt_strategy,
+        num_inference_steps: metadata.num_inference_steps ?? fallback.num_inference_steps,
+        guidance_scale: metadata.guidance_scale ?? fallback.guidance_scale,
+        controlnet_conditioning_scale: metadata.controlnet_conditioning_scale ?? fallback.controlnet_conditioning_scale,
+        seed: metadata.seed ?? fallback.seed
+    };
+}
+
+function renderGenerationMetadata(metadata) {
+    if (!metadataGrid) return;
+
+    const rows = [
+        ['Model', formatModelName(metadata.model_key)],
+        ['Prompt Strategy', formatPromptStrategy(metadata.prompt_strategy)],
+        ['Steps', metadata.num_inference_steps],
+        ['CFG Scale', metadata.guidance_scale],
+        ['ControlNet Scale', metadata.controlnet_conditioning_scale],
+        ['Seed', metadata.seed]
+    ];
+
+    metadataGrid.innerHTML = rows.map(([label, value]) => `
+        <div class="metadata-item">
+            <span class="metadata-label">${label}</span>
+            <span class="metadata-value">${value ?? 'N/A'}</span>
+        </div>
+    `).join('');
+}
+
+function formatModelName(modelKey) {
+    const names = {
+        sd_v1_5: 'SD v1.5',
+        sdxl: 'SDXL',
+        ssd_1b: 'SSD-1B'
+    };
+    return names[modelKey] || modelKey || 'N/A';
+}
+
+function formatPromptStrategy(strategy) {
+    const names = {
+        llm: 'LLM Prompt',
+        rule_based: 'Rule-Based Prompt'
+    };
+    return names[strategy] || strategy || 'N/A';
 }
 
 // Copy prompt to clipboard
