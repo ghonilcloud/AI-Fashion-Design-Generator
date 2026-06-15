@@ -5,7 +5,6 @@ const API_BASE_URL = window.API_BASE_URL || "http://localhost:8000";
 let uploadedFile = null;
 let availableTones = [];
 let availableKanseiWords = [];
-let designsCreated = 0;
 
 // DOM Elements
 const uploadArea = document.getElementById('uploadArea');
@@ -29,8 +28,6 @@ const errorMessage = document.getElementById('errorMessage');
 async function init() {
     await loadTonesAndKansei();
     setupEventListeners();
-    initializeSidebar();
-    loadUserProfile();
 }
 
 // Load available tones and Kansei words from API
@@ -203,9 +200,6 @@ async function handleGenerate() {
         
         const result = await response.json();
         
-        // Increment designs count
-        incrementDesignsCount();
-        
         // Display results
         displayResults(result);
         
@@ -272,118 +266,6 @@ function showError(message) {
 // Hide error message
 function hideError() {
     errorToast.style.display = 'none';
-}
-
-// Initialize sidebar
-function initializeSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const editProfileBtn = document.getElementById('editProfileBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    
-    // Toggle sidebar on mobile
-    if (sidebarToggleBtn) {
-        sidebarToggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-        });
-    }
-    
-    // Close sidebar button
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.remove('active');
-        });
-    }
-    
-    // Edit profile button
-    if (editProfileBtn) {
-        editProfileBtn.addEventListener('click', handleEditProfile);
-    }
-    
-    // Logout button
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
-}
-
-// Load user profile
-function loadUserProfile() {
-    // Load from localStorage or use default values
-    const profile = {
-        name: localStorage.getItem('userName') || 'Fashion Designer',
-        email: localStorage.getItem('userEmail') || 'user@example.com',
-        designsCount: parseInt(localStorage.getItem('designsCount')) || 0,
-        memberSince: localStorage.getItem('memberSince') || 'Dec 2025'
-    };
-    
-    // Update UI
-    document.getElementById('profileName').textContent = profile.name;
-    document.getElementById('profileEmail').textContent = profile.email;
-    document.getElementById('designsCount').textContent = profile.designsCount;
-    document.getElementById('memberSince').textContent = profile.memberSince;
-    
-    // Update avatar
-    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=6366f1&color=fff&size=120`;
-    document.getElementById('profileAvatar').src = avatarUrl;
-    
-    designsCreated = profile.designsCount;
-}
-
-// Handle edit profile
-function handleEditProfile() {
-    const currentName = document.getElementById('profileName').textContent;
-    const currentEmail = document.getElementById('profileEmail').textContent;
-    
-    const newName = prompt('Enter your name:', currentName);
-    if (newName && newName.trim()) {
-        const newEmail = prompt('Enter your email:', currentEmail);
-        if (newEmail && newEmail.trim()) {
-            // Update profile
-            document.getElementById('profileName').textContent = newName.trim();
-            document.getElementById('profileEmail').textContent = newEmail.trim();
-            
-            // Update avatar
-            const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(newName.trim())}&background=6366f1&color=fff&size=120`;
-            document.getElementById('profileAvatar').src = avatarUrl;
-            
-            // Save to localStorage
-            localStorage.setItem('userName', newName.trim());
-            localStorage.setItem('userEmail', newEmail.trim());
-            
-            showSuccess('Profile updated successfully!');
-        }
-    }
-}
-
-// Handle logout
-function handleLogout() {
-    if (confirm('Are you sure you want to logout?')) {
-        // Could clear localStorage or redirect to login page
-        showSuccess('Logged out successfully!');
-        // For demo purposes, just show a message
-    }
-}
-
-// Update designs count
-function incrementDesignsCount() {
-    designsCreated++;
-    document.getElementById('designsCount').textContent = designsCreated;
-    localStorage.setItem('designsCount', designsCreated);
-}
-
-// Show success message
-function showSuccess(message) {
-    // Create a success toast similar to error toast
-    const toast = document.createElement('div');
-    toast.className = 'toast success-toast';
-    toast.style.cssText = 'position: fixed; top: 2rem; right: 2rem; padding: 1rem 1.5rem; border-radius: 8px; background: var(--success-color); color: white; z-index: 1000; animation: slideIn 0.3s ease;';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
 }
 
 // Initialize app when DOM is ready
