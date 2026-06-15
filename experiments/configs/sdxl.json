@@ -1,0 +1,22 @@
+{
+  "experiment_name": "sdxl_candidate",
+  "model": {
+    "label": "sdxl",
+    "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
+    "controlnet_model": "diffusers/controlnet-canny-sdxl-1.0"
+  },
+  "prompt": {
+    "mode": "gemini",
+    "gemini_model": "gemini-2.5-flash"
+  },
+  "generation": {
+    "num_inference_steps": 20,
+    "guidance_scale": 7.5,
+    "controlnet_conditioning_scale": 1.0,
+    "negative_prompt": "blurry, low quality, distorted, ugly, bad anatomy",
+    "seed": 42
+  },
+  "notes": "This config records the intended SDXL comparison. The current backend pipeline is SD v1.5-oriented and may need an SDXL ControlNet pipeline implementation before this runs successfully.",
+  "metrics": ["sketch_iou"]
+}
+
