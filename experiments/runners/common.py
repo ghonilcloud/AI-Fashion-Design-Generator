@@ -61,12 +61,12 @@ def run_case(
     prompt_config = config.get("prompt", {})
     metrics = config.get("metrics", [])
     seed = generation.get("seed")
-    model_label = model.get("label", "model")
+    model_key = model.get("model_key", model.get("label", "sd_v1_5"))
     case_id = case["sketch_id"]
     prompt_strategy = get_prompt_strategy(prompt_config)
 
     prompt = build_prompt(config, case)
-    prompt_stem = f"{case_id}_{model_label}_seed{seed}_{prompt_strategy}"
+    prompt_stem = f"{case_id}_{model_key}_seed{seed}_{prompt_strategy}"
     prompt_path = logger.write_prompt(prompt_stem, prompt)
 
     record: dict[str, Any] = {
@@ -88,16 +88,15 @@ def run_case(
         logger.append_record(record)
         return record
 
-    output_path = logger.images_dir / f"{case_id}_{model_label}_seed{seed}.png"
-
     try:
         from backend.app.image_generator import generate_fashion_design
 
         with measure_runtime() as runtime:
-            generate_fashion_design(
+            generation_metadata = generate_fashion_design(
                 sketch_path=case["sketch_path"],
                 prompt=prompt,
-                output_path=output_path,
+                output_path=logger.images_dir,
+                model_key=model_key,
                 num_inference_steps=generation.get("num_inference_steps", 20),
                 guidance_scale=generation.get("guidance_scale", 7.5),
                 controlnet_conditioning_scale=generation.get(
@@ -107,12 +106,18 @@ def run_case(
                     "negative_prompt", "blurry, low quality, distorted, ugly, bad anatomy"
                 ),
                 seed=seed,
-                base_model=model.get("base_model", "runwayml/stable-diffusion-v1-5"),
-                controlnet_model=model.get("controlnet_model", "lllyasviel/sd-controlnet-canny"),
+                prompt_strategy=prompt_strategy,
+                sketch_id=case_id,
+                base_model=model.get("base_model"),
+                controlnet_model=model.get("controlnet_model"),
+                device=generation.get("device"),
+                dtype=generation.get("dtype"),
             )
 
+        output_path = Path(generation_metadata["output_path"])
         record["status"] = "ok"
         record["output_path"] = str(output_path)
+        record["generation_metadata"] = generation_metadata
         record["runtime"] = runtime
         record["metrics"] = compute_selected_metrics(metrics, case["sketch_path"], output_path, prompt)
     except Exception as exc:

@@ -107,34 +107,33 @@ def main():
     try:
         from backend.app.image_generator import generate_fashion_design
 
-        output_path = (
-            Path(PROJECT_ROOT)
-            / "backend"
-            / "media"
-            / "generated"
-            / f"cli_generated_{sketch_path.stem}.png"
-        )
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path = Path(PROJECT_ROOT) / "backend" / "media" / "generated"
+        output_path.mkdir(parents=True, exist_ok=True)
 
         print("\nProcessing... This may take a few minutes...")
         print(f"Input: {sketch_path}")
-        print(f"Output: {output_path}")
+        print(f"Output directory: {output_path}")
 
-        generate_fashion_design(
+        metadata = generate_fashion_design(
             sketch_path=sketch_path,
             prompt=image_prompt,
             output_path=output_path,
+            model_key="sd_v1_5",
             num_inference_steps=20,
             guidance_scale=7.5,
             controlnet_conditioning_scale=1.0,
+            prompt_strategy=prompt_strategy,
+            sketch_id=sketch_path.stem,
         )
+        generated_path = Path(metadata["output_path"])
 
         print("\nSuccess! Generated image saved to:")
-        print(f"  {output_path}")
+        print(f"  {generated_path}")
 
-        prompt_path = output_path.with_suffix(".txt")
+        prompt_path = generated_path.with_suffix(".txt")
         with open(prompt_path, "w", encoding="utf-8") as f:
             f.write(f"Prompt Strategy: {prompt_strategy}\n")
+            f.write(f"Generation Metadata: {metadata}\n")
             f.write(f"Tones: {', '.join(tones)}\n")
             f.write(f"Kansei Words: {', '.join(kansei)}\n\n")
             f.write(f"Generated Prompt:\n{image_prompt}")

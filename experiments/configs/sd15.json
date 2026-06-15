@@ -1,7 +1,7 @@
 {
   "experiment_name": "sd15_default",
   "model": {
-    "label": "sd15",
+    "model_key": "sd_v1_5",
     "base_model": "runwayml/stable-diffusion-v1-5",
     "controlnet_model": "lllyasviel/sd-controlnet-canny"
   },

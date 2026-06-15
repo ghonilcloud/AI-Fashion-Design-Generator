@@ -13,12 +13,13 @@ from .tones import TONES, KANSEI_WORDS
 
 # Optional import - only load when needed to avoid PyTorch DLL issues
 try:
-    from .image_generator import generate_fashion_design
+    from .image_generator import generate_fashion_design, resolve_output_path
     IMAGE_GENERATION_AVAILABLE = True
 except Exception as e:
     print(f"Warning: Image generation disabled. Error loading dependencies: {e}")
     IMAGE_GENERATION_AVAILABLE = False
     generate_fashion_design = None
+    resolve_output_path = None
 
 app = FastAPI(
     title="Fashion Emotion Design API",
@@ -48,6 +49,14 @@ async def generate_design(
     kansei_words: List[str] = Form(default=[]),
     prompt_strategy: str = Form("llm"),
     garment_type: str | None = Form(None),
+    model_key: str = Form("sd_v1_5"),
+    base_model: str | None = Form(None),
+    controlnet_model: str | None = Form(None),
+    num_inference_steps: int = Form(20),
+    guidance_scale: float = Form(7.5),
+    controlnet_conditioning_scale: float = Form(1.0),
+    seed: int | None = Form(None),
+    negative_prompt: str = Form("blurry, low quality, distorted, ugly, bad anatomy"),
 ):
     """
     Main endpoint: receives sketch + kansei text + optional tones/Kansei words.
@@ -96,19 +105,35 @@ async def generate_design(
         print(f"Gemini error: {error_msg}")
 
     # 3. Generate image using Stable Diffusion + ControlNet with sketch + prompt
-    generated_filename = f"generated_{sketch_id}.png"
-    generated_path = GENERATED_DIR / generated_filename
+    generation_metadata = None
+    generated_path = _fallback_output_path(
+        sketch_id=sketch_id,
+        model_key=model_key,
+        prompt_strategy=normalized_prompt_strategy,
+        num_inference_steps=num_inference_steps,
+        guidance_scale=guidance_scale,
+        controlnet_conditioning_scale=controlnet_conditioning_scale,
+        seed=seed,
+    )
     
     if IMAGE_GENERATION_AVAILABLE:
         try:
-            generate_fashion_design(
+            generation_metadata = generate_fashion_design(
                 sketch_path=sketch_path,
                 prompt=llm_prompt,
-                output_path=generated_path,
-                num_inference_steps=20,
-                guidance_scale=7.5,
-                controlnet_conditioning_scale=1.0,
+                output_path=GENERATED_DIR,
+                model_key=model_key,
+                base_model=base_model,
+                controlnet_model=controlnet_model,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
+                controlnet_conditioning_scale=controlnet_conditioning_scale,
+                seed=seed,
+                negative_prompt=negative_prompt,
+                prompt_strategy=normalized_prompt_strategy,
+                sketch_id=sketch_id,
             )
+            generated_path = Path(generation_metadata["output_path"])
         except Exception as e:
             # Fallback: copy sketch if generation fails
             print(f"Image generation failed: {e}")
@@ -119,6 +144,7 @@ async def generate_design(
         shutil.copyfile(sketch_path, generated_path)
 
     # 4. Build URL for frontend
+    generated_filename = generated_path.name
     generated_image_url = f"/media/generated/{generated_filename}"
 
     notes = (
@@ -131,6 +157,7 @@ async def generate_design(
         generated_image_url=generated_image_url,
         llm_prompt=llm_prompt,
         prompt_strategy=normalized_prompt_strategy,
+        generation_metadata=generation_metadata,
         notes=notes,
     )
 
@@ -156,3 +183,31 @@ if FRONTEND_DIR.exists():
 else:
     # If the frontend folder is missing, leave API-only behavior and log a message
     print(f"Frontend directory not found at {FRONTEND_DIR}; serving API only.")
+
+
+def _fallback_output_path(
+    sketch_id: str,
+    model_key: str,
+    prompt_strategy: str,
+    num_inference_steps: int,
+    guidance_scale: float,
+    controlnet_conditioning_scale: float,
+    seed: int | None,
+) -> Path:
+    if resolve_output_path:
+        return resolve_output_path(
+            output_path=GENERATED_DIR,
+            sketch_id=sketch_id,
+            model_key=model_key,
+            prompt_strategy=prompt_strategy,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            controlnet_conditioning_scale=controlnet_conditioning_scale,
+            seed=seed,
+        )
+    filename = (
+        f"{sketch_id}_{model_key}_{prompt_strategy}_steps{num_inference_steps}_"
+        f"cfg{str(guidance_scale).replace('.', 'p')}_"
+        f"cnet{str(controlnet_conditioning_scale).replace('.', 'p')}_seed{seed}.png"
+    )
+    return GENERATED_DIR / filename

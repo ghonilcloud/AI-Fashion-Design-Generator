@@ -1,7 +1,7 @@
 {
   "experiment_name": "ssd1b_candidate",
   "model": {
-    "label": "ssd1b",
+    "model_key": "ssd_1b",
     "base_model": "segmind/SSD-1B",
     "controlnet_model": "diffusers/controlnet-canny-sdxl-1.0"
   },
