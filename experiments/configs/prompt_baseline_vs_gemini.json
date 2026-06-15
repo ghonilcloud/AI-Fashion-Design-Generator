@@ -1,7 +1,0 @@
-{
-  "experiment_name": "prompt_baseline_vs_gemini",
-  "base_config": "experiments/configs/sd15.json",
-  "prompt_strategies": ["rule_based", "llm"],
-  "seeds": [42],
-  "metrics": ["sketch_iou"]
-}

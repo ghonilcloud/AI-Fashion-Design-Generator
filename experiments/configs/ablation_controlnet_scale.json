@@ -1,8 +1,0 @@
-{
-  "experiment_name": "ablation_controlnet_scale",
-  "base_config": "experiments/configs/sd15.json",
-  "controlnet_conditioning_scales": [0.5, 0.75, 1.0, 1.25],
-  "seeds": [42],
-  "metrics": ["sketch_iou"]
-}
-
